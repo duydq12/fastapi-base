@@ -1,0 +1,69 @@
+# User specific & automatically generated files #
+#################################################
+.coverage
+__pycache__
+.mypy_cache
+.pytest_cache
+.tox
+.scannerwork
+sonar_cache
+build/
+dist/
+*.egg-info
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.db
+
+# IDE and editor specific files #
+#################################
+nbproject
+.idea
+.vscode
+
+# Compiled files
+################
+*.com
+*.class
+*.dll
+*.exe
+*.bin
+*.so*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*.mo
+
+# Packaged files
+################
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Private/Secret files
+######################
+*.der
+*.key
+*.pem
+
+# script project #
+##################
+.env
+venv
