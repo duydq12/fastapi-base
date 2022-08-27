@@ -1,0 +1,102 @@
+[build-system]
+requires = [ "setuptools>=61.0" ]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "fastapi_base"
+version = "0.0.1"
+description = "Abstraction for local and remote filesystems"
+readme = "README.md"
+keywords = [ "fastapi_base", "fastapi" ]
+authors = [
+    { name = "Dao Quang Duy", email = "duydaoquang12@gmail.com" },
+]
+maintainers = [
+    { name = "Rabiloo Developers", email = "oss@rabiloo.com" },
+]
+license = {text = "The MIT License"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 2 - Pre-Alpha",
+]
+dependencies = [
+    "fastapi",
+    "fastapi_health",
+    "loguru",
+    "passlib",
+    "python-decouple",
+    "python-multipart",
+    "bcrypt"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "flake8-pyproject",
+    "pytest",
+    "typing_extensions"
+]
+logger = [
+    "python-logstash",
+    "requests"
+]
+logger-logstash = [
+    "python-logstash"
+]
+logger-ggchat = [
+    "requests"
+]
+db = [
+    "SQLAlchemy",
+    "tenacity",
+    "psycopg2-binary",
+    "asyncpg",
+    "pymysql",
+    "asyncmy"
+]
+db-pg = [
+    "SQLAlchemy",
+    "tenacity",
+    "psycopg2-binary"
+]
+db-asyncpg = [
+    "SQLAlchemy",
+    "asyncpg",
+]
+db-my = [
+    "SQLAlchemy",
+    "tenacity",
+    "pymysql"
+]
+db-asyncmy = [
+    "SQLAlchemy",
+    "asyncmy",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/rabiloo/python-flysystem"
+"Repository" = "https://github.com/rabiloo/python-flysystem"
+"Bug Tracker" = "https://github.com/rabiloo/python-flysystem/issues"
+
+
+[tool.flake8]
+count = true
+max-complexity = 10
+max-line-length = 120
+statistics = true
+
+
+[tool.black]
+target-version = ["py310"]
+line-length = 120
+
+
+[tool.isort]
+profile = "black"
+lines_between_types = 1
+line_length = 120

@@ -1,0 +1,104 @@
+# FastAPI Base
+
+## About FastAPI Base
+
+[FastAPI Base](https://github.com/rabiloo/fastapi-base) is a library based on [FastAPI](https://github.com/tiangolo/fastapi). It provides several modules that help improve web application development using FastAPI
+
+Some module in project
+- Logger module
+- Authentication module
+- Database Connection module
+- CRUD module
+- Encrypt module
+- Common Design Pattern module
+
+## Install
+With using the logger with 3rdParty handlers
+```
+$ pip install fastapi-base[logger-logstash,logger-ggchat]
+```
+
+# Usage
+## Config middleware, exception_handler, logger with uvicorn
+```
+from fastapi_base.app import app
+from fastapi_base.logger import configure_logger, get_uvicorn_configure_logger
+from fastapi_base.logger.filter import HealthCheckFilter
+from fastapi_base.logger.formatter import DEFAULT_FORMATTER
+from fastapi_base.logger.handler.logstash_handler import LogStashHandler
+from fastapi_base.logger.handler.file_handler import FileHandler
+from fastapi_base.logger.handler.stdout_handler import StdoutHandler
+from fastapi_base.middleware.common_handler import timer_middleware
+from fastapi_base.middleware.exception_handler import business_exception_handler
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
+
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Add Timer middleware
+app.add_middleware(BaseHTTPMiddleware, dispatch=timer_middleware)
+
+# Add Business Exception Handler
+app.add_exception_handler(BusinessException, business_exception_handler)
+
+configure_logger(
+    handlers=[
+        ("builtin", StdoutHandler(log_format=DEFAULT_FORMATTER)),
+        ("builtin", FileHandler(log_format=DEFAULT_FORMATTER, log_filter=HealthCheckFilter())),
+        ("custom", LogStashHandler(service_name="Test", log_filter=HealthCheckFilter()))
+    ]
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+@app.post('/test')
+async def test(
+    title: str = Form(...),
+    description: str = Form(...),
+) -> ResponseObject:
+    """ doc """
+    logger.info(f"{title}-{description}")
+    return ResponseObject(data=f"{title}-{description}")
+
+
+uvicorn.run(
+    app,
+    host="0.0.0.0",
+    port=3000,
+    workers=1,
+    reload=False,
+    log_config=get_uvicorn_configure_logger()
+)
+```
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+
+## Contributing
+
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+
+## Security Vulnerabilities
+
+Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+
+## Credits
+
+- [Dao Quang Duy](https://github.com/duydq12)
+- [All Contributors](../../contributors)
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
