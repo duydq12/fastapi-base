@@ -2,14 +2,16 @@
 
 import logging
 import uuid
+
 from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
-from fastapi_base.error_code import ServerErrorCode
-from fastapi_base.model import Base
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+from fastapi_base.error_code import ServerErrorCode
+from fastapi_base.model import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -35,10 +37,7 @@ class SQLRepository(Generic[ModelType]):
     def get(self, session: Session, obj_id: Any) -> Optional[ModelType]:
         """Define method get data by query id."""
         try:
-            data = session.query(self.model).filter(
-                self.model.id == obj_id,
-                self.model.is_deleted.is_(False)
-            ).first()
+            data = session.query(self.model).filter(self.model.id == obj_id, self.model.is_deleted.is_(False)).first()
         except SQLAlchemyError as ex:
             raise ServerErrorCode.DATABASE_ERROR.value(ex)
         logger.debug(f"Get id: {obj_id} from table {self.model.__tablename__.upper()} done")

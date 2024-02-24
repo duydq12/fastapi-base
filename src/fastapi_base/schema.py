@@ -1,7 +1,8 @@
-from typing import TypeVar, Optional
+from typing import Optional, TypeVar
+
+from pydantic import BaseModel
 
 from fastapi_base.model import Base
-from pydantic import BaseModel
 
 SchemaInstance = TypeVar("SchemaInstance", bound=BaseModel)
 ModelInstance = TypeVar("ModelInstance", bound=Base)

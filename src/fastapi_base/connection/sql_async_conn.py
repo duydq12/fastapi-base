@@ -1,17 +1,13 @@
 import asyncio
 import contextlib
 import os
+
 from socket import gaierror
 from typing import Any, AsyncIterator
 
 from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import (
-    AsyncConnection,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
 DB_HOST = os.getenv("DB_HOST")
@@ -91,5 +87,5 @@ async def is_database_online():
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(is_database_online())

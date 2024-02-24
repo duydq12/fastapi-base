@@ -1,15 +1,17 @@
 """Security file."""
-import os
-from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends
-from typing import Any, Dict
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+import os
+
+from datetime import datetime, timedelta
+from typing import Any, Dict
+
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from pydantic import ValidationError
 from starlette import status
 
-reusable_oauth2 = HTTPBearer(scheme_name='Authorization')
+reusable_oauth2 = HTTPBearer(scheme_name="Authorization")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")

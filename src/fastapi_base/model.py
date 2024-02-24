@@ -1,6 +1,8 @@
 """Define base model."""
+
 # mypy: ignore-errors
 import re
+
 from typing import Any, Tuple
 
 from sqlalchemy import MetaData
@@ -38,7 +40,7 @@ def pluralize(word) -> str:
         "thief": "thieves",
         "wife": "wives",
         "wolf": "wolves",
-        "belief": "beliefs"
+        "belief": "beliefs",
     }
 
     if word in exceptions:

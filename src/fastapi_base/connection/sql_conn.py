@@ -1,9 +1,10 @@
 import contextlib
 import logging
 import os
-from typing import Iterator, Any
 
-from sqlalchemy import create_engine, Connection
+from typing import Any, Iterator
+
+from sqlalchemy import Connection, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -92,5 +93,5 @@ def is_database_online():
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     is_database_online()
