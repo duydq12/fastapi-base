@@ -62,4 +62,4 @@ def configure_logger(handlers, root_logger_level: Union[str, int] = "INFO") -> N
         if handler_type == "builtin":
             logger.add(**dict(handler))
         else:
-            logger.add(handler, level=handler.level)
+            logger.add(handler, level=handler.level, enqueue=handler.enqueue)

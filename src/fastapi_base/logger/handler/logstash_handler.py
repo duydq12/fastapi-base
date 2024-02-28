@@ -19,6 +19,7 @@ class LogStashHandler(logging.Handler):
         logstash_version: int = 1,
         service_name: str = "",
         level: str = "INFO",
+        enqueue: bool = True,
         log_filter: Optional[FilterFunction] = None,
     ):
         super().__init__(level)
@@ -29,6 +30,7 @@ class LogStashHandler(logging.Handler):
             "server_ip": socket.gethostbyname(socket.gethostname()),
         }
         self._filter = log_filter
+        self.enqueue = enqueue
         if not LOGSTASH_HOST:
             raise ValueError("Invalid Logstash host")
 

@@ -1,5 +1,4 @@
 import logging
-
 from json import dumps
 from typing import Callable, Optional
 
@@ -15,11 +14,13 @@ class GGChatHandler(logging.Handler):
         self,
         service_name: str = "",
         level: str = "WARNING",
+        enqueue: bool = True,
         log_filter: Optional[FilterFunction] = None,
     ):
         super().__init__(level)
         self.service_name = service_name
         self._filter = log_filter
+        self.enqueue = enqueue
         if not GOOGLE_CHAT_WEBHOOK:
             raise ValueError("Invalid Google chat webhook url")
 

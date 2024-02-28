@@ -19,7 +19,7 @@ class StdoutHandler(object):
         serialize: bool = False,
         backtrace: bool = True,
         diagnose: bool = False,
-        enqueue: bool = True,
+        enqueue: bool = False,
         catch: bool = False,
     ):
         self.sink = sink
