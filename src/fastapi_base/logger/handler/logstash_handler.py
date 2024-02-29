@@ -8,8 +8,6 @@ import decouple
 from logstash import TCPLogstashHandler
 from starlette import status
 
-LOGSTASH_HOST: str = decouple.config("LOGSTASH_HOST")
-LOGSTASH_PORT: int = decouple.config("LOGSTASH_PORT")
 FilterFunction = Callable[[logging.LogRecord], bool]
 
 
@@ -23,19 +21,23 @@ class LogStashHandler(logging.Handler):
         log_filter: Optional[FilterFunction] = None,
     ):
         super().__init__(level)
-        self.tcp_logstash = TCPLogstashHandler(LOGSTASH_HOST, LOGSTASH_PORT, version=logstash_version)
         self.ext_message = {
             "response_code": status.HTTP_200_OK,
             "server_name": service_name,
             "server_ip": socket.gethostbyname(socket.gethostname()),
         }
-        self._filter = log_filter
         self.enqueue = enqueue
-        if not LOGSTASH_HOST:
+        self._filter = log_filter
+        self._host: str = decouple.config("LOGSTASH_HOST")
+        self._port: int = decouple.config("LOGSTASH_PORT")
+
+        if not self._host:
             raise ValueError("Invalid Logstash host")
 
-        if not LOGSTASH_PORT or isinstance(LOGSTASH_PORT, int):
+        if not self._port or isinstance(self._port, int):
             raise ValueError("Invalid Logstash port")
+
+        self.tcp_logstash = TCPLogstashHandler(self._host, self._port, version=logstash_version)
 
     def emit(self, record: logging.LogRecord) -> None:
         if self._filter is not None and self._filter(record):

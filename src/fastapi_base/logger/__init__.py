@@ -33,6 +33,7 @@ def get_uvicorn_configure_logger():
     """
     from uvicorn.config import LOGGING_CONFIG
 
+    custom_logging_config = LOGGING_CONFIG.copy()
     custom_loggers = {}
     for logger_name, logger_config in LOGGING_CONFIG["loggers"].items():
         custom_logger_config = logger_config.copy()
@@ -40,7 +41,8 @@ def get_uvicorn_configure_logger():
         custom_logger_config["propagate"] = True
         custom_loggers[logger_name] = custom_logger_config
 
-    return custom_loggers
+    custom_logging_config["loggers"] = custom_loggers
+    return custom_logging_config
 
 
 def configure_logger(handlers, root_logger_level: Union[str, int] = "INFO") -> None:
