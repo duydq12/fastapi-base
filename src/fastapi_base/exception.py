@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import traceback
 
+from typing import Dict, Union
+
 from starlette import status
 
 from fastapi_base.response import ExceptionDetail
@@ -25,3 +27,6 @@ class BusinessException(Exception):  # noqa
     def __call__(self, exception: Exception) -> BusinessException:
         self.data = get_traceback(exception) if ENV == "DEV" else ""
         return self
+
+    def as_dict(self) -> Dict[str, Union[int, str]]:
+        return {"status_code": self.status_code, "code": self.code, "message": self.message}
