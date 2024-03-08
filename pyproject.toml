@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastapi_base"
-version = "0.0.3"
+version = "0.0.4"
 description = "Provides several modules that help improve web application development using FastAPI"
 readme = "README.md"
 keywords = [ "fastapi_base", "fastapi" ]
