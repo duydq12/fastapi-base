@@ -5,11 +5,12 @@ from typing import Any, Dict
 
 import decouple
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from pydantic import ValidationError
-from starlette import status
+
+from fastapi_base.error_code import AuthErrorCode
 
 reusable_oauth2 = HTTPBearer(scheme_name="Authorization")
 
@@ -41,15 +42,7 @@ async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusab
     try:
         payload: Dict[str, Any] = jwt_decode(credentials.credentials)
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Expired Access Token",
-            headers={"Authenticate": "Basic username:password"},
-        )
+        raise AuthErrorCode.EXPIRED_ACCESS_TOKEN.value
     except (jwt.JWTError, ValidationError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"Authenticate": "Basic username:password"},
-        )
+        raise AuthErrorCode.INVALID_ACCESS_TOKEN.value
     return payload
