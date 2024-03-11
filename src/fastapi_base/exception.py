@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import os
 import traceback
 
 from typing import Dict, Union
+
+import decouple
 
 from starlette import status
 
 from fastapi_base.response import ExceptionDetail
 
-ENV = os.getenv("ENV", "DEV")
+ENV = decouple.config("ENV", "DEV")
 
 
 def get_traceback(ex: Exception) -> str:

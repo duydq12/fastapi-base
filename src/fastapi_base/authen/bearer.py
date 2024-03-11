@@ -1,9 +1,9 @@
 """Security file."""
 
-import os
-
 from datetime import datetime, timedelta
 from typing import Any, Dict
+
+import decouple
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,9 +13,9 @@ from starlette import status
 
 reusable_oauth2 = HTTPBearer(scheme_name="Authorization")
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_SECONDS = os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", 60)
+SECRET_KEY = decouple.config("SECRET_KEY")
+ALGORITHM = decouple.config("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_SECONDS = decouple.config("ACCESS_TOKEN_EXPIRE_SECONDS", 60)
 
 
 def jwt_decode(credentials: str) -> Dict[str, Any]:

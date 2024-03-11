@@ -1,12 +1,12 @@
-import os
+import decouple
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
 from starlette import status
 
-USERNAME_HASH = os.getenv("BASIC_USERNAME")
-PASSWORD_HASH = os.getenv("BASIC_PASSWORD")
+USERNAME_HASH = decouple.config("BASIC_USERNAME")
+PASSWORD_HASH = decouple.config("BASIC_PASSWORD")
 
 basic_credential = HTTPBasic()
 

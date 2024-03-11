@@ -9,6 +9,7 @@ from loguru import logger
 
 T = TypeVar("T")
 Function = Callable[..., T]
+LOG_LEVEL_NO = logger.level(decouple.config("LOG_LEVEL", "DEBUG")).no
 
 
 def timeit(func: Function) -> Function:
@@ -16,7 +17,7 @@ def timeit(func: Function) -> Function:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if logger.level(decouple.config("LOG_LEVEL", "DEBUG")).no <= 10:
+        if LOG_LEVEL_NO <= 10:
             start_time = time.time()
             result = func(*args, **kwargs)
             process_time = round(time.time() - start_time, 5)

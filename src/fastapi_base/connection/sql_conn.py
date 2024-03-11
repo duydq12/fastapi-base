@@ -1,8 +1,9 @@
 import contextlib
 import logging
-import os
 
 from typing import Any, Iterator
+
+import decouple
 
 from sqlalchemy import Connection, create_engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,11 +11,11 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import Session, sessionmaker
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_ENGINE = os.getenv("DB_ENGINE")
+DB_HOST = decouple.config("DB_HOST")
+DB_NAME = decouple.config("DB_NAME")
+DB_USER = decouple.config("DB_USER")
+DB_PASSWORD = decouple.config("DB_PASSWORD")
+DB_ENGINE = decouple.config("DB_ENGINE")
 
 logger = logging.getLogger(__name__)
 

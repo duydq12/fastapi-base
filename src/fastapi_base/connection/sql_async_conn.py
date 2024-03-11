@@ -1,20 +1,21 @@
 import asyncio
 import contextlib
-import os
 
 from socket import gaierror
 from typing import Any, AsyncIterator
+
+import decouple
 
 from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_ENGINE = os.getenv("DB_ENGINE")
+DB_HOST = decouple.config("DB_HOST")
+DB_NAME = decouple.config("DB_NAME")
+DB_USER = decouple.config("DB_USER")
+DB_PASSWORD = decouple.config("DB_PASSWORD")
+DB_ENGINE = decouple.config("DB_ENGINE")
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
