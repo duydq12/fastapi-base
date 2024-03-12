@@ -64,7 +64,9 @@ class IgnoreNumpyMeta(_internal._model_construction.ModelMetaclass):
                 annotations.update(base_.__annotations__)
 
         for field in annotations:
-            if not field.startswith("__") and annotations[field].find("npt.") > 0:
+            if not field.startswith("__") and (
+                str(annotations[field]).find("npt.") > 0 or str(annotations[field]).find("numpy.") > 0
+            ):
                 annotations[field] = None
 
         namespace["__annotations__"] = annotations
