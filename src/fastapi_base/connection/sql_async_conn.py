@@ -52,14 +52,14 @@ class SessionManager(object):
         if self._sessionmaker is None:
             raise Exception("SessionManager is not initialized")
 
-        session = self._sessionmaker()
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+        async with self._sessionmaker() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
 
 
 if DB_ENGINE == "postgre":
