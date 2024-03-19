@@ -6,6 +6,7 @@ import re
 from typing import Any, Tuple
 
 from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm.collections import InstrumentedList
@@ -56,7 +57,7 @@ def pluralize(word) -> str:
     return word
 
 
-class Base(DeclarativeBase):
+class Base(AsyncAttrs, DeclarativeBase):
     """Models of base."""
 
     id: Any  # noqa
