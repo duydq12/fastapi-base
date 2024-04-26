@@ -24,13 +24,8 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
 ]
 dependencies = [
-    "fastapi",
-    "fastapi_health",
     "loguru",
-    "passlib",
     "python-decouple",
-    "python-multipart",
-    "bcrypt"
 ]
 
 [project.optional-dependencies]
@@ -62,10 +57,12 @@ db = [
 db-pg = [
     "SQLAlchemy",
     "tenacity",
-    "psycopg2-binary"
+    "psycopg2-binary",
 ]
 db-asyncpg = [
     "SQLAlchemy",
+    "tenacity",
+    "psycopg2-binary",
     "asyncpg",
 ]
 db-my = [
@@ -76,6 +73,14 @@ db-my = [
 db-asyncmy = [
     "SQLAlchemy",
     "asyncmy",
+]
+fastapi = [
+    "fastapi",
+    "fastapi_health",
+    "passlib",
+    "python-multipart",
+    "bcrypt",
+    "uvicorn[standard]",
 ]
 
 [project.urls]
