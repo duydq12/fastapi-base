@@ -26,7 +26,9 @@ class SessionManager(object):
         else:
             engine_kwargs.update({"pool_pre_ping": True})
         self._engine = create_async_engine(host, **engine_kwargs)
-        self._sessionmaker = async_sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
+        self._sessionmaker = async_sessionmaker(
+            autocommit=False, autoflush=False, bind=self._engine, expire_on_commit=False
+        )
 
     async def close(self) -> None:
         if self._engine is None:

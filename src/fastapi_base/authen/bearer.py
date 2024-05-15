@@ -20,7 +20,12 @@ ACCESS_TOKEN_EXPIRE_SECONDS = decouple.config("ACCESS_TOKEN_EXPIRE_SECONDS", 60)
 
 
 def jwt_decode(credentials: str) -> Dict[str, Any]:
-    payload = jwt.decode(credentials, SECRET_KEY, algorithms=ALGORITHM)
+    try:
+        payload = jwt.decode(credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise AuthErrorCode.EXPIRED_ACCESS_TOKEN.value
+    except (jwt.JWTError, ValidationError):
+        raise AuthErrorCode.INVALID_ACCESS_TOKEN.value
     return payload
 
 
@@ -39,10 +44,5 @@ def jwt_encode(subject: str, data: Dict[str, Any] = None, expires_second: int = 
 
 async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusable_oauth2)) -> Dict[str, Any]:
     """Decode jwt token."""
-    try:
-        payload: Dict[str, Any] = jwt_decode(credentials.credentials)
-    except jwt.ExpiredSignatureError:
-        raise AuthErrorCode.EXPIRED_ACCESS_TOKEN.value
-    except (jwt.JWTError, ValidationError):
-        raise AuthErrorCode.INVALID_ACCESS_TOKEN.value
+    payload: Dict[str, Any] = jwt_decode(credentials.credentials)
     return payload

@@ -52,6 +52,7 @@ class SQLRepository(Generic[ModelType]):
             session.commit()
             session.refresh(db_obj)
         except SQLAlchemyError as ex:
+            session.rollback()
             raise ServerErrorCode.DATABASE_ERROR.value(ex)
         logger.debug(f"Insert {db_obj} to table {self.model.__tablename__.upper()} done")
         return db_obj
@@ -72,6 +73,7 @@ class SQLRepository(Generic[ModelType]):
             session.query(self.model).filter(self.model.id == obj_id).update(update_data)
             session.commit()
         except SQLAlchemyError as ex:
+            session.rollback()
             raise ServerErrorCode.DATABASE_ERROR.value(ex)
         logger.debug(f"Update {update_data} to table {self.model.__tablename__.upper()} done")
         return obj_in
@@ -88,5 +90,6 @@ class SQLRepository(Generic[ModelType]):
             session.commit()
             session.expire_all()
         except SQLAlchemyError as ex:
+            session.rollback()
             raise ServerErrorCode.DATABASE_ERROR.value(ex)
         logger.debug(f"Delete {obj_id} to table {self.model.__tablename__.upper()} done")
