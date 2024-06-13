@@ -9,6 +9,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm.collections import InstrumentedList
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",  # Index
@@ -73,13 +74,18 @@ class Base(AsyncAttrs, DeclarativeBase):
         word_list = re.findall("[A-Z][^A-Z]*", table_name)
         return "_".join(word_list).lower()
 
-    def to_dict(self, ignore_fields: Tuple[str, ...] = ("is_deleted", "password", "updated_at")) -> dict[str, Any]:
+    def to_dict(
+        self, ignore_fields: Tuple[str] = ("is_deleted", "password", "updated_at", "_sa_instance_state")
+    ) -> dict[str, Any]:
         """Recursively converts DB object instance to python dictionary."""
-        result = {}
-        for column in self.__tablename__.columns:
-            if column.name not in ignore_fields:
-                if type(getattr(self, column.name)) == list:
-                    result[column.name] = getattr(self, column.name)
-                else:
-                    result[column.name] = str(getattr(self, column.name))
+        result = self.__dict__
+        for field in ignore_fields:
+            if field in result:
+                del result[field]
+
+        for k, v in result.items():
+            if isinstance(v, InstrumentedList):
+                # Recursion on joined relationship fields.
+                result[k] = [obj.to_dict(ignore_fields) for obj in v]
+
         return result
