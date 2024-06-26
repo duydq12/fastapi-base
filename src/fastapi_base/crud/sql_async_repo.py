@@ -45,7 +45,7 @@ class SQLAsyncRepository(Generic[ModelType]):
     async def create(self, session: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         """Define method create base for repository."""
         try:
-            obj_in_data = obj_in.dict()
+            obj_in_data = obj_in.dict(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
             session.add(db_obj)
             await session.commit()
@@ -73,6 +73,7 @@ class SQLAsyncRepository(Generic[ModelType]):
             for key, value in update_data.items():
                 setattr(obj, key, value)
             await session.commit()
+            await session.refresh(obj)
         except SQLAlchemyError as ex:
             await session.rollback()
             raise ServerErrorCode.DATABASE_ERROR.value(ex)

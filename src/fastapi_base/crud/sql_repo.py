@@ -5,7 +5,6 @@ import uuid
 
 from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -46,7 +45,7 @@ class SQLRepository(Generic[ModelType]):
     def create(self, session: Session, *, obj_in: CreateSchemaType) -> ModelType:
         """Define method create base for repository."""
         try:
-            obj_in_data = jsonable_encoder(obj_in)
+            obj_in_data = obj_in.dict(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
             session.add(db_obj)
             session.commit()
