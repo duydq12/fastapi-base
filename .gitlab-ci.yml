@@ -59,15 +59,14 @@ secret_detection:
   stage: scan
   needs: [ ]
 
-license_scanning:
-  stage: scan
-  needs: [ ]
-
 latest-image:
   stage: build
   <<: *before_script_build
   script:
     - python -m pip install --upgrade pip
+    - pip install cython
+    - python setup.py build_ext --inplace
+    - mkdir packages && mv build/lib.linux-x86_64-cpython-310/src packages/ && cp MANIFEST.in packages/ && cp pyproject.toml packages/ && cd packages
     - pip install build
     - python -m build
     - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token twine upload --verbose --repository-url https://git.rabiloo.net/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
@@ -75,7 +74,6 @@ latest-image:
     - master
 
 include:
-  - template: Security/License-Scanning.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - template: Security/Dependency-Scanning.gitlab-ci.yml
