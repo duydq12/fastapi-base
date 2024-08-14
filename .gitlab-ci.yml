@@ -38,11 +38,16 @@ unit-test:
   before_script:
     - python -m pip install --upgrade pip
     - pip install pytest
+    - pip install cython
     - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
   script:
     # install local module
-    - pip install .
+    - python setup.py build_ext --inplace
+    - mkdir packages && mv build/lib.linux-x86_64-cpython-310/src packages/ && cp MANIFEST.in packages/ && cp pyproject.toml packages/ && cd packages
+    - pip install build
+    - python -m build
+    - pip install dist/fastapi_base-*-py3-none-any.whl && cd ..
     # test with Pytest
     - pytest
   allow_failure: true
