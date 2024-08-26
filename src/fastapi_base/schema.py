@@ -1,6 +1,8 @@
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar
+from datetime import datetime
+from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, _internal
+from pydantic.v1 import validator
 
 from fastapi_base.model import Base
 
@@ -71,3 +73,14 @@ class IgnoreNumpyMeta(_internal._model_construction.ModelMetaclass):
 
         namespace["__annotations__"] = annotations
         return super().__new__(cls, cls_name, bases, namespace, **kwargs)
+
+
+class DateBetween(BaseModel):
+    from_date: datetime
+    to_date: datetime
+
+    @validator("from_date", "to_date", pre=True)
+    def parse_date(cls, value: Union[str, datetime]) -> datetime:
+        if isinstance(value, str):
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        return value

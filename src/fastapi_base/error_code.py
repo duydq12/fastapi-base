@@ -14,6 +14,10 @@ class ServerErrorCode(Enum):
     DATABASE_ERROR = BusinessException(
         ExceptionDetail(message="DATABASE ERROR", code="SERVER0101"), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
+    FILE_STORAGE_ERROR = BusinessException(
+        ExceptionDetail(message="FILE STORAGE ERROR", code="SERVER0102"),
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 
 class AuthErrorCode(Enum):
