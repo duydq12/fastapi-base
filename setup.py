@@ -14,14 +14,17 @@ for root, dirs, files in os.walk("src/fastapi_base"):
 
 setup(
     name="fastapi_base",
-    ext_modules=cythonize(ext_modules),
+    ext_modules=cythonize(
+        ext_modules,
+        compiler_directives={
+            "language_level": "3",
+            "embedsignature": True,
+            "binding": True,
+        },
+    ),
     packages=[
         "fastapi_base",
-        "fastapi_base.authen",
-        "fastapi_base.connection",
-        "fastapi_base.crud",
-        "fastapi_base.logger",
-        "fastapi_base.middleware",
-        "fastapi_base.pattern",
     ],
+    package_data={"fastapi_base": ["*.pxd", "*.pyi", "*.so"]},
+    zip_safe=False,
 )
