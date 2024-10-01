@@ -16,6 +16,7 @@ DB_NAME = decouple.config("DB_NAME")
 DB_USER = decouple.config("DB_USER")
 DB_PASSWORD = decouple.config("DB_PASSWORD")
 DB_ENGINE = decouple.config("DB_ENGINE")
+DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 class SessionManager(object):
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = None):
         if not engine_kwargs:
-            engine_kwargs = {"pool_pre_ping": True}
+            engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
         else:
-            engine_kwargs.update({"pool_pre_ping": True})
+            engine_kwargs.update({"pool_pre_ping": True, "pool_size": DB_POOL_SIZE})
         self._engine = create_engine(host, **engine_kwargs)
         self._sessionmaker = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
 
