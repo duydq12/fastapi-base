@@ -105,6 +105,3 @@ line-length = 120
 profile = "black"
 lines_between_types = 1
 line_length = 120
-
-[tool.setuptools.package-data]
-fastapi_base = [ "src/*/*.so" ]
