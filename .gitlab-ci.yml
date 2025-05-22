@@ -15,8 +15,8 @@ cache:
 
 .before_script_build: &before_script_build
   before_script:
-    - rm -rf build dist *.egg-info
-    - apt-get update && apt-get install -y twine
+    - rm -rf build dist */*.egg-info
+    - apt-get update && pip install twine
 
 #========================
 # Define jobs
