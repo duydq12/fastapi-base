@@ -1,3 +1,8 @@
+"""Implements asynchronous database connection management for FastAPI applications.
+
+Provides async session manager and utilities for database health checks.
+"""
+
 import asyncio
 import contextlib
 
@@ -21,7 +26,21 @@ DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
 class SessionManager(object):
+    """Manages asynchronous SQLAlchemy engine and session creation for FastAPI applications.
+
+    Provides context managers for async database connections and sessions.
+
+    Args:
+        host (str): Database connection string.
+        engine_kwargs (dict, optional): Additional engine configuration.
+    """
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = None):
+        """Initializes the SessionManager with async engine and sessionmaker.
+
+        Args:
+            host (str): Database connection string.
+            engine_kwargs (dict, optional): Additional engine configuration.
+        """
         if not engine_kwargs:
             engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
         else:
@@ -32,6 +51,11 @@ class SessionManager(object):
         )
 
     async def close(self) -> None:
+        """Closes the async engine and sessionmaker, releasing resources.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
         await self._engine.dispose()
@@ -40,6 +64,14 @@ class SessionManager(object):
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
+        """Async context manager for database connection.
+
+        Yields:
+            AsyncConnection: An active async database connection.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
 
@@ -52,6 +84,14 @@ class SessionManager(object):
 
     @contextlib.asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
+        """Async context manager for database session.
+
+        Yields:
+            AsyncSession: An active async database session.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._sessionmaker is None:
             raise Exception("SessionManager is not initialized")
 
@@ -77,11 +117,21 @@ sessionmanager = SessionManager(str_connection)
 
 
 async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """Provides an async generator for yielding a database session using SessionManager.
+
+    Yields:
+        AsyncSession: An active async database session.
+    """
     async with sessionmanager.session() as session:
         yield session
 
 
 async def is_database_online():
+    """Checks if the database is online by executing a simple query.
+
+    Returns:
+        bool: True if database is online, False otherwise.
+    """
     try:
         async for session in get_db_session():
             async with session:

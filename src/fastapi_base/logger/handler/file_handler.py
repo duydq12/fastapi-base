@@ -1,3 +1,8 @@
+"""FileHandler for logging to files in FastAPI applications.
+
+Stores configuration for file-based logging, including format, rotation, retention, and filtering options.
+"""
+
 import logging
 
 from typing import Callable, Optional, Union
@@ -7,7 +12,8 @@ from ..formatter import DEFAULT_FORMATTER
 FilterFunction = Callable[[logging.LogRecord], bool]
 
 
-class FileHandler(object):
+class FileHandler:
+    """Handler for logging to files with rotation, retention, and filtering options."""
     def __init__(
         self,
         sink: str = "./logs/app.log",
@@ -28,6 +34,27 @@ class FileHandler(object):
         buffering: int = 1,
         encoding: str = "utf8",
     ):
+        """Initialize FileHandler configuration.
+
+        Args:
+            sink: Log file path
+            level: Log level
+            log_format: Format string or Formatter
+            log_filter: Optional filter function
+            colorize: Enable colored log output
+            serialize: Output logs in JSON format
+            backtrace: Show full traceback in logs
+            diagnose: Enable loguru diagnostics
+            enqueue: Use multiprocessing-safe logging
+            catch: Catch and log exceptions in logging
+            rotation: Log file rotation policy
+            retention: Log file retention policy
+            compression: Compression for rotated log files
+            delay: Delay file opening until first write
+            mode: File open mode (e.g., 'a' for append)
+            buffering: File buffering policy
+            encoding: File encoding
+        """
         self.sink = sink
         self.level = level
         self.format = log_format
@@ -47,6 +74,7 @@ class FileHandler(object):
         self.encoding = encoding
 
     def __iter__(self):
+        """Iterate over non-None attributes for handler configuration."""
         for attribute, value in self.__dict__.items():
             if value is not None:
                 yield attribute, value

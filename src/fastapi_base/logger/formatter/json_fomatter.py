@@ -1,3 +1,13 @@
+"""
+Provides a JSONFormatter for logging in FastAPI applications.
+
+Classes:
+    JSONFormatter: Formats log records as JSON objects, including custom and built-in fields.
+
+Usage:
+    Attach JSONFormatter to a logging handler to output logs in structured JSON format.
+"""
+
 import datetime as dt
 import json
 import logging
@@ -32,6 +42,11 @@ LOG_RECORD_BUILTIN_ATTRS = {
 
 
 class JSONFormatter(logging.Formatter):
+    """
+    Formats log records as JSON objects for structured logging.
+    Args:
+        fmt_keys (dict): Optional mapping of output keys to log record attributes.
+    """
     def __init__(
         self,
         *,
@@ -41,10 +56,24 @@ class JSONFormatter(logging.Formatter):
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format a log record as a JSON string.
+        Args:
+            record: Log record to format
+        Returns:
+            str: JSON-formatted log string
+        """
         message = self._prepare_log_dict(record)
         return json.dumps(message, default=str)
 
     def _prepare_log_dict(self, record: logging.LogRecord):
+        """
+        Prepare a dictionary of log fields for JSON output.
+        Args:
+            record: Log record
+        Returns:
+            dict: Dictionary of log fields
+        """
         always_fields = {
             "message": record.getMessage(),
             "timestamp": dt.datetime.fromtimestamp(record.created, tz=dt.timezone.utc).isoformat(),

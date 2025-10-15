@@ -1,4 +1,10 @@
-"""doc."""
+"""Implements synchronous CRUD repository for FastAPI applications.
+
+Provides methods for create, read, update, and delete operations using SQLAlchemy.
+
+Classes:
+    SQLRepository: Synchronous CRUD repository for SQLAlchemy models.
+"""
 
 import logging
 import uuid
@@ -20,21 +26,35 @@ logger = logging.getLogger(__name__)
 
 
 class SQLRepository(Generic[ModelType]):
-    """Define BaseSQL repository object."""
+    """Synchronous CRUD repository for SQLAlchemy models.
+
+    Provides methods for create, read, update, and delete operations.
+
+    Args:
+        model (Type[ModelType]): SQLAlchemy model class.
+    """
 
     def __init__(self, model: Type[ModelType]):
-        """
-        CRUD object with default methods to Create, Read, Update, Delete (CRUD).
+        """Initializes the repository with a SQLAlchemy model class.
 
-        **Parameters**
-
-        * `model`: A SQLAlchemy model class
-        * `schema`: A Pydantic model (schema) class
+        Args:
+            model (Type[ModelType]): SQLAlchemy model class.
         """
         self.model = model
 
     def get(self, session: Session, obj_id: Any) -> Optional[ModelType]:
-        """Define method get data by query id."""
+        """Retrieve an object by ID.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_id (Any): Object ID to query.
+
+        Returns:
+            Optional[ModelType]: Retrieved model instance or None.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             data = session.query(self.model).filter(self.model.id == obj_id, self.model.is_deleted.is_(False)).first()
         except SQLAlchemyError as ex:
@@ -43,7 +63,18 @@ class SQLRepository(Generic[ModelType]):
         return data
 
     def create(self, session: Session, *, obj_in: CreateSchemaType) -> ModelType:
-        """Define method create base for repository."""
+        """Create a new object in the database.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_in (CreateSchemaType): Pydantic schema for creation.
+
+        Returns:
+            ModelType: Created model instance.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             obj_in_data = obj_in.dict(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
@@ -63,7 +94,19 @@ class SQLRepository(Generic[ModelType]):
         obj_id: uuid.UUID,
         obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> Union[UpdateSchemaType, Dict[str, Any]]:
-        """Define method update base for repository."""
+        """Update an object in the database.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_id (uuid.UUID): Object ID to update.
+            obj_in (UpdateSchemaType | Dict[str, Any]): Update data.
+
+        Returns:
+            UpdateSchemaType | Dict[str, Any]: Updated data.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             if isinstance(obj_in, dict):
                 update_data = obj_in
@@ -83,7 +126,17 @@ class SQLRepository(Generic[ModelType]):
         *,
         obj_id: uuid.UUID,
     ) -> None:
-        """Define method delete base for repository."""
+        """Soft delete an object in the database.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_id (uuid.UUID): Object ID to delete.
+
+        Returns:
+            None
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             session.query(self.model).filter(self.model.id == obj_id).update({"is_deleted": True})
             session.commit()

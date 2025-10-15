@@ -1,4 +1,10 @@
-"""doc."""
+"""Implements asynchronous CRUD repository for FastAPI applications.
+
+Provides async methods for create, read, update, and delete operations using SQLAlchemy.
+
+Classes:
+    SQLAsyncRepository: Asynchronous CRUD repository for SQLAlchemy models.
+"""
 
 import logging
 
@@ -20,21 +26,35 @@ logger = logging.getLogger(__name__)
 
 
 class SQLAsyncRepository(Generic[ModelType]):
-    """Define BaseSQL repository object."""
+    """Asynchronous CRUD repository for SQLAlchemy models.
+
+    Provides async methods for create, read, update, and delete operations.
+
+    Args:
+        model (Type[ModelType]): SQLAlchemy model class.
+    """
 
     def __init__(self, model: Type[ModelType]):
-        """
-        CRUD object with default methods to Create, Read, Update, Delete (CRUD).
+        """Initializes the repository with a SQLAlchemy model class.
 
-        **Parameters**
-
-        * `model`: A SQLAlchemy model class
-        * `schema`: A Pydantic model (schema) class
+        Args:
+            model (Type[ModelType]): SQLAlchemy model class.
         """
         self.model = model
 
     async def get(self, session: AsyncSession, obj_id: Any) -> Optional[ModelType]:
-        """Define method get data by query id."""
+        """Asynchronously retrieve an object by ID.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            obj_id (Any): Object ID to query.
+
+        Returns:
+            Optional[ModelType]: Retrieved model instance or None.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             data = (await session.scalars(select(self.model).where(self.model.id == obj_id))).first()
         except SQLAlchemyError as ex:
@@ -43,7 +63,18 @@ class SQLAsyncRepository(Generic[ModelType]):
         return data
 
     async def create(self, session: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
-        """Define method create base for repository."""
+        """Asynchronously create a new object in the database.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            obj_in (CreateSchemaType): Pydantic schema for creation.
+
+        Returns:
+            ModelType: Created model instance.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             obj_in_data = obj_in.dict(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
@@ -63,7 +94,19 @@ class SQLAsyncRepository(Generic[ModelType]):
         obj_id: Any,
         obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> Union[UpdateSchemaType, Dict[str, Any]]:
-        """Define method update base for repository."""
+        """Asynchronously update an object in the database.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            obj_id (Any): Object ID to update.
+            obj_in (UpdateSchemaType | Dict[str, Any]): Update data.
+
+        Returns:
+            UpdateSchemaType | Dict[str, Any]: Updated data.
+
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             obj = (await session.execute(select(self.model).where(self.model.id == obj_id))).scalars().first()
             if isinstance(obj_in, dict):
@@ -86,7 +129,17 @@ class SQLAsyncRepository(Generic[ModelType]):
         *,
         obj_id: Any,
     ) -> None:
-        """Define method delete base for repository."""
+        """Asynchronously delete an object in the database.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            obj_id (Any): Object ID to delete.
+
+        Returns:
+            None
+        Raises:
+            BusinessException: On database error.
+        """
         try:
             obj = (await session.execute(select(self.model).where(self.model.id == obj_id))).scalars().first()
             await session.delete(obj)

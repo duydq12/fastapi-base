@@ -1,7 +1,11 @@
+"""GGChatHandler for sending log messages to Google Chat via webhook.
+
+Posts log records to a Google Chat room using the configured webhook URL.
+"""
+
 import logging
 
 from json import dumps
-from typing import Callable, Optional
 
 import decouple
 import requests
@@ -10,6 +14,7 @@ FilterFunction = Callable[[logging.LogRecord], bool]
 
 
 class GGChatHandler(logging.Handler):
+    """Handler for sending log messages to Google Chat via webhook."""
     def __init__(
         self,
         service_name: str = "",
@@ -17,6 +22,14 @@ class GGChatHandler(logging.Handler):
         enqueue: bool = True,
         log_filter: Optional[FilterFunction] = None,
     ):
+        """Initialize GGChatHandler configuration.
+
+        Args:
+            service_name: Name of the service for log context
+            level: Log level
+            enqueue: If True, logs are enqueued for async processing
+            log_filter: Optional filter function
+        """
         super().__init__(level)
         self.service_name = service_name
         self.enqueue = enqueue
@@ -27,6 +40,11 @@ class GGChatHandler(logging.Handler):
             raise ValueError("Invalid Google chat webhook url")
 
     def emit(self, record: logging.LogRecord) -> None:
+        """Send a log record to Google Chat via webhook.
+
+        Args:
+            record: Log record to send
+        """
         if self._filter is not None and self._filter(record):
             return
 

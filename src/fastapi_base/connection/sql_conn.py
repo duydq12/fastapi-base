@@ -1,3 +1,8 @@
+"""Implements synchronous database connection management for FastAPI applications.
+
+Provides session manager and utilities for database health checks.
+"""
+
 import contextlib
 import logging
 
@@ -22,7 +27,22 @@ logger = logging.getLogger(__name__)
 
 
 class SessionManager(object):
+    """Manages synchronous SQLAlchemy engine and session creation for FastAPI applications.
+
+    Provides context managers for database connections and sessions.
+
+    Args:
+        host (str): Database connection string.
+        engine_kwargs (dict, optional): Additional engine configuration.
+    """
+
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = None):
+        """Initializes the SessionManager with engine and sessionmaker.
+
+        Args:
+            host (str): Database connection string.
+            engine_kwargs (dict, optional): Additional engine configuration.
+        """
         if not engine_kwargs:
             engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
         else:
@@ -30,7 +50,13 @@ class SessionManager(object):
         self._engine = create_engine(host, **engine_kwargs)
         self._sessionmaker = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
 
+
     def close(self) -> None:
+        """Closes the engine and sessionmaker, releasing resources.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
         self._engine.dispose()
@@ -39,6 +65,14 @@ class SessionManager(object):
 
     @contextlib.contextmanager
     def connect(self) -> Iterator[Connection]:
+        """Context manager for database connection.
+
+        Yields:
+            Connection: An active database connection.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
 
@@ -51,6 +85,14 @@ class SessionManager(object):
 
     @contextlib.contextmanager
     def session(self) -> Iterator[Session]:
+        """Context manager for database session.
+
+        Yields:
+            Session: An active database session.
+
+        Raises:
+            Exception: If SessionManager is not initialized.
+        """
         if self._sessionmaker is None:
             raise Exception("SessionManager is not initialized")
 
@@ -76,7 +118,11 @@ sessionmanager = SessionManager(str_connection)
 
 
 def get_db_session() -> Iterator[Session]:
-    """doc."""
+    """Provides a generator for yielding a database session using SessionManager.
+
+    Yields:
+        Session: An active database session.
+    """
     with sessionmanager.session() as session:
         yield session
 
@@ -86,6 +132,11 @@ def get_db_session() -> Iterator[Session]:
     wait=wait_fixed(1),
 )
 def is_database_online():
+    """Checks if the database is online by executing a simple query.
+
+    Returns:
+        bool: True if database is online, False otherwise.
+    """
     try:
         for session in get_db_session():
             with session:

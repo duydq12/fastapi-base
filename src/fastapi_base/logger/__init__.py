@@ -1,3 +1,13 @@
+"""Logger module initialization for fastapi_base.
+
+Provides logging configuration and handler utilities for FastAPI applications.
+
+Features:
+- Intercepts standard logging and routes to Loguru.
+- Provides configure_logger for custom handler setup.
+- get_uvicorn_configure_logger for Uvicorn integration.
+"""
+
 import logging
 
 from typing import Union
@@ -6,13 +16,13 @@ from loguru import logger
 
 
 class InterceptHandler(logging.Handler):
-    """
-    Default handler from examples in loguru documentaion.
-    See https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging
+    """Intercepts standard logging and routes messages to Loguru.
+
+    Compatible with standard logging.Handler.
     """
 
     def emit(self, record: logging.LogRecord):
-        # Get corresponding Loguru level if it exists
+        """Emit a log record, forwarding it to Loguru with correct level and exception info."""
         try:
             level = logger.level(record.levelname).name
         except ValueError:
@@ -28,9 +38,7 @@ class InterceptHandler(logging.Handler):
 
 
 def get_uvicorn_configure_logger():
-    """
-    When running, uvicorn will load the default logging configure, so it is necessary to override the configure
-    """
+    """When running, uvicorn will load the default logging configure, so it is necessary to override the configure."""
     from uvicorn.config import LOGGING_CONFIG
 
     custom_logging_config = LOGGING_CONFIG.copy()
@@ -46,6 +54,14 @@ def get_uvicorn_configure_logger():
 
 
 def configure_logger(handlers, root_logger_level: Union[str, int] = "INFO") -> None:
+    """Configures the root logger and Loguru with provided handlers.
+
+    Removes all other handlers and propagates to root logger.
+
+    Args:
+        handlers: List of tuples ("builtin"|"custom", handler instance)
+        root_logger_level: Logging level for root logger
+    """
     if isinstance(root_logger_level, str):
         root_logger_level = logging.getLevelName(root_logger_level)
     # intercept everything at the root logger

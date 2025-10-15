@@ -1,3 +1,11 @@
+"""Provides a decorator for measuring and logging function execution time.
+
+Useful for profiling and debugging in FastAPI applications.
+
+Functions:
+    timeit: Decorator to measure and log execution time of a function.
+"""
+
 import time
 
 from functools import wraps
@@ -13,8 +21,16 @@ LOG_LEVEL_NO = logger.level(decouple.config("LOG_LEVEL", "DEBUG")).no
 
 
 def timeit(func: Function) -> Function:
-    """Calculate Time."""
+    """Decorator to measure the execution time of a function.
 
+    If log level is DEBUG, logs the execution time.
+
+    Args:
+        func: Function to be decorated.
+
+    Returns:
+        Function: Wrapped function with timing logic.
+    """
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         if LOG_LEVEL_NO <= 10:

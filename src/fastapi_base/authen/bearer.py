@@ -1,4 +1,12 @@
-"""Security file."""
+"""Implements JWT Bearer authentication for FastAPI applications.
+
+Provides functions for encoding, decoding, and validating JWT tokens.
+
+Functions:
+    jwt_decode: Decodes and validates a JWT token, raises exceptions for invalid/expired tokens.
+    jwt_encode: Encodes user data into a JWT token with expiration.
+    bearer_auth: FastAPI dependency to decode JWT from Authorization header.
+"""
 
 from datetime import datetime, timedelta
 from typing import Any, Dict
@@ -20,6 +28,17 @@ ACCESS_TOKEN_EXPIRE_SECONDS = decouple.config("ACCESS_TOKEN_EXPIRE_SECONDS", 60)
 
 
 def jwt_decode(credentials: str) -> Dict[str, Any]:
+    """Decodes and validates a JWT token string.
+
+    Args:
+        credentials (str): JWT token string to decode.
+
+    Returns:
+        Dict[str, Any]: Decoded JWT payload.
+
+    Raises:
+        BusinessException: If token is expired or invalid.
+    """
     try:
         payload = jwt.decode(credentials, SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:
@@ -30,7 +49,16 @@ def jwt_decode(credentials: str) -> Dict[str, Any]:
 
 
 def jwt_encode(subject: str, data: Dict[str, Any] = None, expires_second: int = 0) -> str:
-    """Create token when login with user."""
+    """Encodes user data into a JWT token with expiration.
+
+    Args:
+        subject (str): Subject (usually user identifier).
+        data (Dict[str, Any], optional): Additional payload data.
+        expires_second (int, optional): Expiration time in seconds.
+
+    Returns:
+        str: Encoded JWT token string.
+    """
     expire = datetime.utcnow() + timedelta(
         seconds=expires_second or int(ACCESS_TOKEN_EXPIRE_SECONDS),
     )
@@ -43,6 +71,16 @@ def jwt_encode(subject: str, data: Dict[str, Any] = None, expires_second: int = 
 
 
 async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusable_oauth2)) -> Dict[str, Any]:
-    """Decode jwt token."""
+    """FastAPI dependency to decode JWT from Authorization header.
+
+    Args:
+        credentials (HTTPAuthorizationCredentials): Credentials from HTTP Authorization header.
+
+    Returns:
+        Dict[str, Any]: Decoded JWT payload.
+
+    Raises:
+        BusinessException: If token is expired or invalid.
+    """
     payload: Dict[str, Any] = jwt_decode(credentials.credentials)
     return payload

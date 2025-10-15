@@ -1,3 +1,12 @@
+"""Defines standardized error codes for server and authentication errors.
+
+Provides enums for common API error responses.
+
+Classes:
+    ServerErrorCode: Enum of server-related error codes and BusinessException instances.
+    AuthErrorCode: Enum of authentication-related error codes and BusinessException instances.
+"""
+
 from enum import Enum
 
 from starlette import status
@@ -7,6 +16,10 @@ from fastapi_base.response import ExceptionDetail
 
 
 class ServerErrorCode(Enum):
+    """Enum of server-related error codes for API responses.
+
+    Each value is a BusinessException instance with a specific message and code.
+    """
     SERVER_ERROR = BusinessException(
         ExceptionDetail(message="INTERNAL SERVER ERROR", code="SERVER0100"),
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -21,6 +34,10 @@ class ServerErrorCode(Enum):
 
 
 class AuthErrorCode(Enum):
+    """Enum of authentication-related error codes for API responses.
+
+    Each value is a BusinessException instance with a specific message and code.
+    """
     INCORRECT_EMAIL = BusinessException(
         ExceptionDetail(message="INCORRECT EMAIL", code="AUTH0001"),
         status_code=status.HTTP_401_UNAUTHORIZED,

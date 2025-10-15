@@ -1,6 +1,13 @@
-"""Define base model."""
+"""Defines the base SQLAlchemy model and utility functions for ORM usage.
 
-# mypy: ignore-errors
+Provides automatic table naming and dictionary conversion for model instances.
+
+Classes:
+    Base: Base SQLAlchemy model with automatic tablename and dict conversion.
+Functions:
+    pluralize: Pluralizes English words for table naming.
+"""
+
 import re
 
 from typing import Any, Tuple
@@ -20,7 +27,15 @@ NAMING_CONVENTION = {
 }
 
 
-def pluralize(word) -> str:
+def pluralize(word: str) -> str:
+    """Pluralizes an English word, handling regular and irregular cases.
+
+    Args:
+        word (str): Singular word to pluralize.
+
+    Returns:
+        str: Plural form of the word.
+    """
     exceptions = {
         "man": "men",
         "woman": "women",
@@ -58,17 +73,27 @@ def pluralize(word) -> str:
 
 
 class Base(AsyncAttrs, DeclarativeBase):
-    """Models of base."""
+    """Base SQLAlchemy model for ORM usage.
 
+    Provides automatic tablename generation and dict conversion.
+
+    Attributes:
+        id: Primary key field.
+        is_deleted: Soft delete flag.
+        metadata: SQLAlchemy metadata with naming conventions.
+    """
     id: Any  # noqa
     is_deleted: Any
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
-    # Generate __tablename__ automatically
     @declared_attr
     def __tablename__(cls) -> str:
-        """Customize __tablename__"""
+        """Automatically generates table name from class name in plural snake_case.
+
+        Returns:
+            str: Table name for the model.
+        """
         table_name = cls.__name__
         table_name = pluralize(table_name)
         word_list = re.findall("[A-Z][^A-Z]*", table_name)
@@ -77,7 +102,14 @@ class Base(AsyncAttrs, DeclarativeBase):
     def to_dict(
         self, ignore_fields: Tuple[str] = ("is_deleted", "password", "updated_at", "_sa_instance_state")
     ) -> dict[str, Any]:
-        """Recursively converts DB object instance to python dictionary."""
+        """Recursively converts DB object instance to python dictionary.
+
+        Args:
+            ignore_fields (Tuple[str]): Fields to exclude from the result.
+
+        Returns:
+            dict[str, Any]: Dictionary representation of the model instance.
+        """
         result = self.__dict__
         for field in ignore_fields:
             if field in result:
