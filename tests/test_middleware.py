@@ -1,0 +1,53 @@
+"""Unit tests for FastAPI middleware and exception handlers in fastapi_base.
+
+Covers timer middleware and custom business exception handler.
+"""
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from fastapi_base.exception import BusinessException
+from fastapi_base.middleware.common_handler import timer_middleware
+from fastapi_base.middleware.exception_handler import business_exception_handler
+from fastapi_base.response import ExceptionDetail
+
+# --- Setup for timer_middleware ---
+app_timer = FastAPI()
+app_timer.add_middleware(BaseHTTPMiddleware, dispatch=timer_middleware)
+
+@app_timer.get("/")
+async def root():
+    """Test endpoint for timer middleware."""
+    return {"message": "Hello"}
+
+# --- Setup for exception_handler ---
+app_exc = FastAPI()
+app_exc.add_exception_handler(BusinessException, business_exception_handler)
+
+@app_exc.get("/error")
+async def raise_error():
+    """Test endpoint for business exception handler."""
+    raise BusinessException(
+        status_code=400,
+        exception=ExceptionDetail(code="TEST001", message="Test Error")
+    )
+
+@pytest.mark.asyncio
+async def test_timer_middleware_adds_header():
+    """Tests that the timer middleware adds the 'x-process-time' header to responses."""
+    async with AsyncClient(transport=ASGITransport(app=app_timer), base_url="http://test") as ac:
+        response = await ac.get("/")
+    assert response.status_code == 200
+    assert "x-process-time" in response.headers
+    assert float(response.headers["x-process-time"]) > 0
+
+@pytest.mark.asyncio
+async def test_business_exception_handler():
+    """Tests that the custom exception handler catches BusinessException and returns correct response."""
+    async with AsyncClient(transport=ASGITransport(app=app_exc), base_url="http://test") as ac:
+        response = await ac.get("/error")
+    assert response.status_code == 400
+    json_response = response.json()
+    assert json_response["code"] == "TEST001"
+    assert json_response["message"] == "Test Error"
