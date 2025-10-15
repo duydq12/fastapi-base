@@ -13,13 +13,11 @@ Functions:
 """
 
 import glob
-import io
 import os
 import shutil
 import sys
 
 import isort
-
 from Cython.Build import cythonize
 from setuptools import setup
 from setuptools.extension import Extension
@@ -41,7 +39,7 @@ def read_file(filename: str, mode: str = "r", encoding: str = "utf-8") -> str:
     Returns:
         str: Contents of the file.
     """
-    with io.open(filename, mode, encoding=encoding) as file:
+    with open(filename, mode, encoding=encoding) as file:
         text: str = file.read()
     return text
 
@@ -55,11 +53,11 @@ def write_file(filename: str, text: str, mode: str = "w", encoding: str = "utf-8
         mode: File open mode.
         encoding: File encoding.
     """
-    with io.open(filename, mode, encoding=encoding) as file:
+    with open(filename, mode, encoding=encoding) as file:
         file.write(text)
 
 
-def scan_dir(dirname, suffix=".py") -> list[str]:
+def scan_dir(dirname: str, suffix: str = ".py") -> list[str]:
     """Returns all the files inside a directory with a given suffix.
 
     Args:

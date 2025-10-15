@@ -1,8 +1,13 @@
+# ======================================================================
+# Build System Configuration
+# ======================================================================
 [build-system]
 requires = [ "setuptools>=61.0" ]
 build-backend = "setuptools.build_meta"
 
-
+# ======================================================================
+# Project Metadata
+# ======================================================================
 [project]
 name = "fastapi_base"
 version = "0.0.17"
@@ -23,17 +28,23 @@ classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 2 - Pre-Alpha",
 ]
+
+# Core dependencies (from install_requires)
 dependencies = [
     "loguru",
     "python-decouple",
 ]
 
+# Optional dependencies (from extras_require)
 [project.optional-dependencies]
 dev = [
     "black",
     "flake8",
     "flake8-pyproject",
     "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "httpx",
     "typing_extensions"
 ]
 logger = [
@@ -80,6 +91,7 @@ fastapi = [
     "passlib",
     "python-multipart",
     "bcrypt",
+    "python-jose",
     "uvicorn[standard]",
 ]
 
@@ -88,20 +100,202 @@ fastapi = [
 "Repository" = "https://github.com/rabiloo/fastapi-base"
 "Bug Tracker" = "https://github.com/rabiloo/fastapi-base/issues"
 
-
-[tool.flake8]
-count = true
-max-complexity = 10
-max-line-length = 120
-statistics = true
-
-
-[tool.black]
-target-version = ["py310"]
+# ======================================================================
+# Ruff Linter and Formatter Configuration
+# ======================================================================
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv"
+]
+target-version = "py310"
 line-length = 120
 
+[tool.ruff.lint]
+extend-select = [
+    # pycodestyle
+    "E",
+    "W",
+    "D",
+    # Pyflakes
+    "F",
+    # isort
+    "I",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # flake8-builtins
+    "A",
+    # flake8-bandit
+    "S",
+    # flake8-logging-format
+    "G",
+    # mccabe complexity checks
+    "C90"
+]
+ignore = [
+    # f-string format
+    "UP032",
+    # logging-f-string format
+    "G004",
+    # undocumented-public-package
+    "D104",
+]
 
-[tool.isort]
-profile = "black"
-lines_between_types = 1
-line_length = 120
+[tool.ruff.lint.isort]
+known-first-party = ["rag", "tests"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "D100", "D101"]
+"*_test.py" = ["S101", "D100", "D101"]
+"test_*.py" = ["S101", "D100", "D101"]
+
+"examples/*" = ["D100"]
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+
+# ======================================================================
+# Typos Spell Checker Configuration
+# ======================================================================
+[tool.typos.files]
+extend-exclude = []
+
+[tool.typos.default]
+binary = false
+check-filename = true
+check-file = true
+unicode = true
+ignore-hex = true
+
+[tool.typos.default.extend-identifiers]
+
+[tool.typos.default.extend-words]
+aadd = "aadd"
+embedd = "embedd"
+nin = "nin"
+
+[tool.typos.type.py]
+
+[tool.typos.type.py.extend-identifiers]
+
+[tool.typos.type.py.extend-words]
+
+# ======================================================================
+# Mypy Static Type Checker Configuration
+# ======================================================================
+[tool.mypy]
+python_version = "3.10"
+
+# --- Strictness Settings ---
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+disallow_any_generics = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = false
+
+# --- Import Following ---
+follow_imports = "normal"
+
+# --- Reporting Settings ---
+show_error_codes = true
+show_column_numbers = true
+show_traceback = true
+
+# --- Per-module Overrides ---
+# This is how [mypy-module.*] sections are translated.
+
+[[tool.mypy.overrides]]
+module = [
+    "pydantic.*",
+    "decouple.*",
+    "loguru.*",
+    "asyncio.*",
+    "requests.*",
+    "fastapi_health.*",
+    "logstash.*",
+    "passlib.*",
+    "jose.*",
+    "asyncpg.*",
+    "setuptools.*",
+    "isort.*",
+    "Cython.*"
+]
+ignore_missing_imports = true
+
+# ======================================================================
+# Coverage Configuration
+# ======================================================================
+[tool.coverage.run]
+branch = true
+source = ["fastapi_base"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+
+    # Don't complain about abstract methods, they aren't run;
+    "@(abc\\.)?abstractmethod"
+]
+show_missing = true
+skip_covered = true
+
+[tool.coverage.xml]
+output = "coverage-reports/coverage.xml"

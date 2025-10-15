@@ -7,8 +7,7 @@ Classes:
 """
 
 import logging
-
-from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -34,7 +33,7 @@ class SQLAsyncRepository(Generic[ModelType]):
         model (Type[ModelType]): SQLAlchemy model class.
     """
 
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         """Initializes the repository with a SQLAlchemy model class.
 
         Args:
@@ -42,7 +41,7 @@ class SQLAsyncRepository(Generic[ModelType]):
         """
         self.model = model
 
-    async def get(self, session: AsyncSession, obj_id: Any) -> Optional[ModelType]:
+    async def get(self, session: AsyncSession, obj_id: Any) -> ModelType | None:
         """Asynchronously retrieve an object by ID.
 
         Args:
@@ -58,7 +57,7 @@ class SQLAsyncRepository(Generic[ModelType]):
         try:
             data = (await session.scalars(select(self.model).where(self.model.id == obj_id))).first()
         except SQLAlchemyError as ex:
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Get id: {obj_id} from table {self.model.__tablename__.upper()} done")
         return data
 
@@ -83,7 +82,7 @@ class SQLAsyncRepository(Generic[ModelType]):
             await session.refresh(db_obj)
         except SQLAlchemyError as ex:
             await session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Insert {db_obj} to table {self.model.__tablename__.upper()} done")
         return db_obj
 
@@ -92,8 +91,8 @@ class SQLAsyncRepository(Generic[ModelType]):
         session: AsyncSession,
         *,
         obj_id: Any,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
-    ) -> Union[UpdateSchemaType, Dict[str, Any]]:
+        obj_in: UpdateSchemaType | dict[str, Any],
+    ) -> UpdateSchemaType | dict[str, Any]:
         """Asynchronously update an object in the database.
 
         Args:
@@ -109,17 +108,14 @@ class SQLAsyncRepository(Generic[ModelType]):
         """
         try:
             obj = (await session.execute(select(self.model).where(self.model.id == obj_id))).scalars().first()
-            if isinstance(obj_in, dict):
-                update_data = obj_in
-            else:
-                update_data = obj_in.dict(exclude_unset=True)
+            update_data = obj_in if isinstance(obj_in, dict) else obj_in.dict(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(obj, key, value)
             await session.commit()
             await session.refresh(obj)
         except SQLAlchemyError as ex:
             await session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Update {update_data} to table {self.model.__tablename__.upper()} done")
         return obj_in
 
@@ -146,5 +142,5 @@ class SQLAsyncRepository(Generic[ModelType]):
             await session.commit()
         except SQLAlchemyError as ex:
             await session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Delete {obj_id} to table {self.model.__tablename__.upper()} done")

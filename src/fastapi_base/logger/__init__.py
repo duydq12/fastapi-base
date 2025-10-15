@@ -9,8 +9,8 @@ Features:
 """
 
 import logging
-
-from typing import Union
+from types import FrameType
+from typing import Any
 
 from loguru import logger
 
@@ -21,23 +21,24 @@ class InterceptHandler(logging.Handler):
     Compatible with standard logging.Handler.
     """
 
-    def emit(self, record: logging.LogRecord):
+    def emit(self, record: logging.LogRecord) -> None:
         """Emit a log record, forwarding it to Loguru with correct level and exception info."""
         try:
-            level = logger.level(record.levelname).name
+            level: int | str = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
         # Find caller from where originated the logged message
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
+        frame: FrameType | None = logging.currentframe()
+        depth = 2
+        while frame is not None and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
 
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-def get_uvicorn_configure_logger():
+def get_uvicorn_configure_logger() -> dict[str, Any]:
     """When running, uvicorn will load the default logging configure, so it is necessary to override the configure."""
     from uvicorn.config import LOGGING_CONFIG
 
@@ -53,7 +54,7 @@ def get_uvicorn_configure_logger():
     return custom_logging_config
 
 
-def configure_logger(handlers, root_logger_level: Union[str, int] = "INFO") -> None:
+def configure_logger(handlers: list[tuple[str, Any]], root_logger_level: str | int = "INFO") -> None:
     """Configures the root logger and Loguru with provided handlers.
 
     Removes all other handlers and propagates to root logger.
@@ -70,7 +71,7 @@ def configure_logger(handlers, root_logger_level: Union[str, int] = "INFO") -> N
 
     # remove every other logger's handlers
     # and propagate to root logger
-    for name in logging.root.manager.loggerDict.keys():
+    for name in logging.root.manager.loggerDict:
         _logger = logging.getLogger(name)
         _logger.handlers = []
         _logger.propagate = True

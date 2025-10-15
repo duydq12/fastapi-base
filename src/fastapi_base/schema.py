@@ -13,7 +13,7 @@ Functions:
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, _internal
 from pydantic.v1 import validator
@@ -38,7 +38,7 @@ class BaseRequestSchema(BaseModel):
         use_enum_values = True
 
     @classmethod
-    def collect_aliases(cls: Type[BaseModel]) -> Dict[str, str]:
+    def collect_aliases(cls: type[BaseModel]) -> dict[str, str]:
         """Collects aliases for fields in the schema.
 
         Returns:
@@ -60,13 +60,13 @@ class Paging(BaseRequestSchema):
         offset: Start position.
         limit: Number of records to return.
     """
-    offset: Optional[int]
-    limit: Optional[int]
+    offset: int | None
+    limit: int | None
 
 
 class AllOptionalMeta(_internal._model_construction.ModelMetaclass):
     """Metaclass to make all fields in a model optional, useful for PATCH requests."""
-    def __new__(cls, cls_name: str, bases: Tuple[Type[Any], ...], namespace: Dict[str, Any], **kwargs: Any):
+    def __new__(cls, cls_name: str, bases: tuple[type[Any], ...], namespace: dict[str, Any], **kwargs: Any) -> type:
         """Create a new class with all fields set as optional.
 
         Args:
@@ -78,7 +78,7 @@ class AllOptionalMeta(_internal._model_construction.ModelMetaclass):
         Returns:
             type: The newly constructed class with all fields optional.
         """
-        annotations: Dict[str, Any] = namespace.get("__annotations__", {})
+        annotations: dict[str, Any] = namespace.get("__annotations__", {})
 
         for base in bases:
             for base_ in base.__mro__:
@@ -88,7 +88,7 @@ class AllOptionalMeta(_internal._model_construction.ModelMetaclass):
 
         for field in annotations:
             if not field.startswith("__"):
-                annotations[field] = Optional[annotations[field]]
+                annotations[field] = annotations[field] | None
 
         namespace["__annotations__"] = annotations
         return super().__new__(cls, cls_name, bases, namespace, **kwargs)
@@ -96,7 +96,7 @@ class AllOptionalMeta(_internal._model_construction.ModelMetaclass):
 
 class IgnoreNumpyMeta(_internal._model_construction.ModelMetaclass):
     """Metaclass to ignore fields of numpy type in a model."""
-    def __new__(cls, cls_name: str, bases: Tuple[Type[Any], ...], namespace: Dict[str, Any], **kwargs: Any):
+    def __new__(cls, cls_name: str, bases: tuple[type[Any], ...], namespace: dict[str, Any], **kwargs: Any) -> type:
         """Create a new class with numpy fields ignored (set to None).
 
         Args:
@@ -108,7 +108,7 @@ class IgnoreNumpyMeta(_internal._model_construction.ModelMetaclass):
         Returns:
             type: The newly constructed class with numpy fields ignored.
         """
-        annotations: Dict[str, Any] = namespace.get("__annotations__", {})
+        annotations: dict[str, Any] = namespace.get("__annotations__", {})
 
         for base in bases:
             for base_ in base.__mro__:
@@ -137,7 +137,7 @@ class DateBetween(BaseModel):
     to_date: datetime
 
     @validator("from_date", "to_date", pre=True)
-    def parse_date(cls, value: Union[str, datetime]) -> datetime:
+    def parse_date(cls, value: str | datetime) -> datetime:
         """Parse date from string or datetime object.
 
         Args:

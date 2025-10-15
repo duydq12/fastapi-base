@@ -13,7 +13,7 @@ from fastapi_health import health
 app = FastAPI()
 
 
-def healthy_condition():
+def healthy_condition() -> dict[str, str]:
     """Returns service status for health check endpoint.
 
     Returns:
@@ -22,7 +22,7 @@ def healthy_condition():
     return {"service": "online"}
 
 
-def sick_condition():
+def sick_condition() -> bool:
     """Returns True for health check endpoint (placeholder for additional checks).
 
     Returns:

@@ -5,8 +5,8 @@ Stores configuration for stdout-based logging, including format, filtering, and 
 
 import logging
 import sys
-
-from typing import Callable, Optional, TextIO, Union
+from collections.abc import Callable, Iterator
+from typing import TextIO
 
 from ..formatter import DEFAULT_FORMATTER
 
@@ -22,9 +22,9 @@ class StdoutHandler:
         self,
         sink: TextIO = sys.stdout,
         level: str = "INFO",
-        log_format: Union[str, logging.Formatter] = DEFAULT_FORMATTER,
-        log_filter: Optional[FilterFunction] = None,
-        colorize: Optional[bool] = None,
+        log_format: str | logging.Formatter = DEFAULT_FORMATTER,
+        log_filter: FilterFunction | None = None,
+        colorize: bool | None = None,
         serialize: bool = False,
         backtrace: bool = True,
         diagnose: bool = False,
@@ -56,7 +56,7 @@ class StdoutHandler:
         self.enqueue = enqueue
         self.catch = catch
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, object]]:
         """Iterate over non-None attributes for handler configuration."""
         for attribute, value in self.__dict__.items():
             if value is not None:

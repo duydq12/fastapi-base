@@ -5,12 +5,11 @@ Provides session manager and utilities for database health checks.
 
 import contextlib
 import logging
-
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import decouple
-
-from sqlalchemy import Connection, create_engine
+from sqlalchemy import Connection, Engine, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -26,7 +25,7 @@ DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
 logger = logging.getLogger(__name__)
 
 
-class SessionManager(object):
+class SessionManager:
     """Manages synchronous SQLAlchemy engine and session creation for FastAPI applications.
 
     Provides context managers for database connections and sessions.
@@ -36,7 +35,7 @@ class SessionManager(object):
         engine_kwargs (dict, optional): Additional engine configuration.
     """
 
-    def __init__(self, host: str, engine_kwargs: dict[str, Any] = None):
+    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None) -> None:
         """Initializes the SessionManager with engine and sessionmaker.
 
         Args:
@@ -47,9 +46,9 @@ class SessionManager(object):
             engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
         else:
             engine_kwargs.update({"pool_pre_ping": True, "pool_size": DB_POOL_SIZE})
-        self._engine = create_engine(host, **engine_kwargs)
-        self._sessionmaker = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
-
+        self._engine: Engine | None = create_engine(host, **engine_kwargs)
+        self._sessionmaker: sessionmaker[Session] | None = sessionmaker(autocommit=False, autoflush=False,
+                                                                        bind=self._engine)
 
     def close(self) -> None:
         """Closes the engine and sessionmaker, releasing resources.
@@ -131,7 +130,7 @@ def get_db_session() -> Iterator[Session]:
     stop=stop_after_attempt(30),
     wait=wait_fixed(1),
 )
-def is_database_online():
+def is_database_online() -> bool:
     """Checks if the database is online by executing a simple query.
 
     Returns:

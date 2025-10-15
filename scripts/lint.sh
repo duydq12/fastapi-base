@@ -2,8 +2,6 @@
 
 set -eux
 
-flake8 . --count --max-complexity=10 --max-line-length=120 --statistics --ignore W503
+ruff check src tests
 
-black . --check --target-version=py310 --line-length=120
-
-isort . --check-only --profile=black --lbt=1 -l=120
+typos src tests

@@ -9,10 +9,9 @@ Functions:
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 
 import decouple
-
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
@@ -27,7 +26,7 @@ ALGORITHM = decouple.config("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_SECONDS = decouple.config("ACCESS_TOKEN_EXPIRE_SECONDS", 60)
 
 
-def jwt_decode(credentials: str) -> Dict[str, Any]:
+def jwt_decode(credentials: str) -> dict[str, Any]:
     """Decodes and validates a JWT token string.
 
     Args:
@@ -40,15 +39,15 @@ def jwt_decode(credentials: str) -> Dict[str, Any]:
         BusinessException: If token is expired or invalid.
     """
     try:
-        payload = jwt.decode(credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict[str, Any] = jwt.decode(credentials, SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:
-        raise AuthErrorCode.EXPIRED_ACCESS_TOKEN.value
+        raise AuthErrorCode.EXPIRED_ACCESS_TOKEN.value from None
     except (jwt.JWTError, ValidationError):
-        raise AuthErrorCode.INVALID_ACCESS_TOKEN.value
+        raise AuthErrorCode.INVALID_ACCESS_TOKEN.value from None
     return payload
 
 
-def jwt_encode(subject: str, data: Dict[str, Any] = None, expires_second: int = 0) -> str:
+def jwt_encode(subject: str, data: dict[str, Any] | None = None, expires_second: int = 0) -> str:
     """Encodes user data into a JWT token with expiration.
 
     Args:
@@ -67,10 +66,11 @@ def jwt_encode(subject: str, data: Dict[str, Any] = None, expires_second: int = 
     if data:
         to_encode.update(data)
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    data_encoded: str = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return data_encoded
 
 
-async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusable_oauth2)) -> Dict[str, Any]:
+async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusable_oauth2)) -> dict[str, Any]: # noqa: B008
     """FastAPI dependency to decode JWT from Authorization header.
 
     Args:
@@ -82,5 +82,5 @@ async def bearer_auth(credentials: HTTPAuthorizationCredentials = Depends(reusab
     Raises:
         BusinessException: If token is expired or invalid.
     """
-    payload: Dict[str, Any] = jwt_decode(credentials.credentials)
+    payload: dict[str, Any] = jwt_decode(credentials.credentials)
     return payload

@@ -5,15 +5,14 @@ Provides async session manager and utilities for database health checks.
 
 import asyncio
 import contextlib
-
+from collections.abc import AsyncIterator
 from socket import gaierror
-from typing import Any, AsyncIterator
+from typing import Any
 
 import decouple
-
 from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
 DB_HOST = decouple.config("DB_HOST")
@@ -25,7 +24,7 @@ DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
-class SessionManager(object):
+class SessionManager:
     """Manages asynchronous SQLAlchemy engine and session creation for FastAPI applications.
 
     Provides context managers for async database connections and sessions.
@@ -34,7 +33,8 @@ class SessionManager(object):
         host (str): Database connection string.
         engine_kwargs (dict, optional): Additional engine configuration.
     """
-    def __init__(self, host: str, engine_kwargs: dict[str, Any] = None):
+
+    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None):
         """Initializes the SessionManager with async engine and sessionmaker.
 
         Args:
@@ -45,8 +45,8 @@ class SessionManager(object):
             engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
         else:
             engine_kwargs.update({"pool_pre_ping": True, "pool_size": DB_POOL_SIZE})
-        self._engine = create_async_engine(host, **engine_kwargs)
-        self._sessionmaker = async_sessionmaker(
+        self._engine: AsyncEngine | None = create_async_engine(host, **engine_kwargs)
+        self._sessionmaker: async_sessionmaker[AsyncSession] | None = async_sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine, expire_on_commit=False
         )
 
@@ -126,7 +126,7 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-async def is_database_online():
+async def is_database_online() -> bool:
     """Checks if the database is online by executing a simple query.
 
     Returns:

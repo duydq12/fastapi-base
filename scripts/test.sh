@@ -2,6 +2,4 @@
 
 set -eux
 
-pip install -e .
-
-pytest
+pytest --cov=src --cov-report=term-missing --cov-report=xml tests/

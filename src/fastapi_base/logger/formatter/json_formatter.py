@@ -1,5 +1,4 @@
-"""
-Provides a JSONFormatter for logging in FastAPI applications.
+"""Provides a JSONFormatter for logging in FastAPI applications.
 
 Classes:
     JSONFormatter: Formats log records as JSON objects, including custom and built-in fields.
@@ -11,8 +10,7 @@ Usage:
 import datetime as dt
 import json
 import logging
-
-from typing import Optional
+from typing import Any
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -42,22 +40,25 @@ LOG_RECORD_BUILTIN_ATTRS = {
 
 
 class JSONFormatter(logging.Formatter):
-    """
-    Formats log records as JSON objects for structured logging.
-    Args:
-        fmt_keys (dict): Optional mapping of output keys to log record attributes.
-    """
+    """Formats log records as JSON objects for structured logging."""
+
     def __init__(
         self,
         *,
-        fmt_keys: Optional[dict[str, str]] = None,
+        fmt_keys: dict[str, str] | None = None,
     ):
+        """Initialize the JSONFormatter.
+
+        Args:
+            fmt_keys (dict[str, str] | None): Optional mapping of output keys to log record attributes.
+                If provided, keys are used in the output JSON and values are the corresponding log record attributes.
+        """
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
 
     def format(self, record: logging.LogRecord) -> str:
-        """
-        Format a log record as a JSON string.
+        """Format a log record as a JSON string.
+
         Args:
             record: Log record to format
         Returns:
@@ -66,9 +67,9 @@ class JSONFormatter(logging.Formatter):
         message = self._prepare_log_dict(record)
         return json.dumps(message, default=str)
 
-    def _prepare_log_dict(self, record: logging.LogRecord):
-        """
-        Prepare a dictionary of log fields for JSON output.
+    def _prepare_log_dict(self, record: logging.LogRecord) -> dict[str, Any]:
+        """Prepare a dictionary of log fields for JSON output.
+
         Args:
             record: Log record
         Returns:

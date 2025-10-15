@@ -8,8 +8,7 @@ Classes:
 
 import logging
 import uuid
-
-from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
@@ -34,7 +33,7 @@ class SQLRepository(Generic[ModelType]):
         model (Type[ModelType]): SQLAlchemy model class.
     """
 
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         """Initializes the repository with a SQLAlchemy model class.
 
         Args:
@@ -42,7 +41,7 @@ class SQLRepository(Generic[ModelType]):
         """
         self.model = model
 
-    def get(self, session: Session, obj_id: Any) -> Optional[ModelType]:
+    def get(self, session: Session, obj_id: Any) -> ModelType | None:
         """Retrieve an object by ID.
 
         Args:
@@ -58,7 +57,7 @@ class SQLRepository(Generic[ModelType]):
         try:
             data = session.query(self.model).filter(self.model.id == obj_id, self.model.is_deleted.is_(False)).first()
         except SQLAlchemyError as ex:
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Get id: {obj_id} from table {self.model.__tablename__.upper()} done")
         return data
 
@@ -83,7 +82,7 @@ class SQLRepository(Generic[ModelType]):
             session.refresh(db_obj)
         except SQLAlchemyError as ex:
             session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Insert {db_obj} to table {self.model.__tablename__.upper()} done")
         return db_obj
 
@@ -92,8 +91,8 @@ class SQLRepository(Generic[ModelType]):
         session: Session,
         *,
         obj_id: uuid.UUID,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
-    ) -> Union[UpdateSchemaType, Dict[str, Any]]:
+        obj_in: UpdateSchemaType | dict[str, Any],
+    ) -> UpdateSchemaType | dict[str, Any]:
         """Update an object in the database.
 
         Args:
@@ -108,15 +107,12 @@ class SQLRepository(Generic[ModelType]):
             BusinessException: On database error.
         """
         try:
-            if isinstance(obj_in, dict):
-                update_data = obj_in
-            else:
-                update_data = obj_in.dict(exclude_unset=True)
-            session.query(self.model).filter(self.model.id == obj_id).update(update_data)
+            update_data = obj_in if isinstance(obj_in, dict) else obj_in.dict(exclude_unset=True)
+            session.query(self.model).filter(self.model.id == obj_id).update(update_data)  # type: ignore
             session.commit()
         except SQLAlchemyError as ex:
             session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Update {update_data} to table {self.model.__tablename__.upper()} done")
         return obj_in
 
@@ -143,5 +139,5 @@ class SQLRepository(Generic[ModelType]):
             session.expire_all()
         except SQLAlchemyError as ex:
             session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex)
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         logger.debug(f"Delete {obj_id} to table {self.model.__tablename__.upper()} done")

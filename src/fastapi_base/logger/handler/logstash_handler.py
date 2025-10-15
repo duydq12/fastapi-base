@@ -5,8 +5,7 @@ Sends structured log records to a Logstash server for centralized logging and an
 
 import logging
 import socket
-
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import decouple
 from logstash import TCPLogstashHandler
@@ -23,7 +22,7 @@ class LogStashHandler(logging.Handler):
         service_name: str = "",
         level: str = "INFO",
         enqueue: bool = True,
-        log_filter: Optional[FilterFunction] = None,
+        log_filter: FilterFunction | None = None,
     ):
         """Initialize LogStashHandler configuration.
 

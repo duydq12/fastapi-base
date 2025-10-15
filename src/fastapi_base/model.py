@@ -9,8 +9,7 @@ Functions:
 """
 
 import re
-
-from typing import Any, Tuple
+from typing import Any
 
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -87,7 +86,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
-    @declared_attr
+    @declared_attr  # type: ignore
     def __tablename__(cls) -> str:
         """Automatically generates table name from class name in plural snake_case.
 
@@ -100,7 +99,7 @@ class Base(AsyncAttrs, DeclarativeBase):
         return "_".join(word_list).lower()
 
     def to_dict(
-        self, ignore_fields: Tuple[str] = ("is_deleted", "password", "updated_at", "_sa_instance_state")
+        self, ignore_fields: tuple[str, ...] = ("is_deleted", "password", "updated_at", "_sa_instance_state")
     ) -> dict[str, Any]:
         """Recursively converts DB object instance to python dictionary.
 

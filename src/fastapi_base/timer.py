@@ -7,12 +7,11 @@ Functions:
 """
 
 import time
-
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import decouple
-
 from loguru import logger
 
 T = TypeVar("T")
@@ -20,7 +19,7 @@ Function = Callable[..., T]
 LOG_LEVEL_NO = logger.level(decouple.config("LOG_LEVEL", "DEBUG")).no
 
 
-def timeit(func: Function) -> Function:
+def timeit(func: Function[T]) -> Function[T]:
     """Decorator to measure the execution time of a function.
 
     If log level is DEBUG, logs the execution time.

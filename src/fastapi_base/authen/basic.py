@@ -21,7 +21,7 @@ PASSWORD_HASH = decouple.config("BASIC_PASSWORD")
 basic_credential = HTTPBasic()
 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifies a plain password against a hashed password using bcrypt.
 
     Args:
@@ -32,10 +32,11 @@ def verify_password(plain_password, hashed_password):
         bool: True if the password matches, False otherwise.
     """
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.verify(plain_password, hashed_password)
+    is_matched: bool = pwd_context.verify(plain_password, hashed_password)
+    return is_matched
 
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
     """Hashes a password using bcrypt.
 
     Args:
@@ -45,10 +46,11 @@ def get_password_hash(password):
         str: The hashed password.
     """
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.hash(password)
+    pwd_hash: str = pwd_context.hash(password)
+    return pwd_hash
 
 
-async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credential)) -> None:
+async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credential)) -> None: # noqa: B008
     """FastAPI dependency to authenticate user using HTTP Basic credentials.
 
     Args:
@@ -61,6 +63,6 @@ async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credentia
         correct_username = verify_password(credentials.username, USERNAME_HASH)
         correct_password = verify_password(credentials.password, PASSWORD_HASH)
         if not (correct_username and correct_password):
-            raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value
+            raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value from None
     except Exception:
-        raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value
+        raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value from None

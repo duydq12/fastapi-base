@@ -4,7 +4,7 @@ Posts log records to a Google Chat room using the configured webhook URL.
 """
 
 import logging
-
+from collections.abc import Callable
 from json import dumps
 
 import decouple
@@ -20,7 +20,7 @@ class GGChatHandler(logging.Handler):
         service_name: str = "",
         level: str = "WARNING",
         enqueue: bool = True,
-        log_filter: Optional[FilterFunction] = None,
+        log_filter: FilterFunction | None = None,
     ):
         """Initialize GGChatHandler configuration.
 

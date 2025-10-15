@@ -4,8 +4,7 @@ Stores configuration for file-based logging, including format, rotation, retenti
 """
 
 import logging
-
-from typing import Callable, Optional, Union
+from collections.abc import Callable, Iterator
 
 from ..formatter import DEFAULT_FORMATTER
 
@@ -18,17 +17,17 @@ class FileHandler:
         self,
         sink: str = "./logs/app.log",
         level: str = "INFO",
-        log_format: Union[str, logging.Formatter] = DEFAULT_FORMATTER,
-        log_filter: Optional[FilterFunction] = None,
-        colorize: Optional[bool] = None,
+        log_format: str | logging.Formatter = DEFAULT_FORMATTER,
+        log_filter: FilterFunction | None = None,
+        colorize: bool | None = None,
         serialize: bool = False,
         backtrace: bool = True,
         diagnose: bool = False,
         enqueue: bool = True,
         catch: bool = False,
-        rotation: Union[str, int] = "7 days",
-        retention: Union[str, int] = "1 months",
-        compression: Optional[Union[str]] = None,
+        rotation: str | int = "7 days",
+        retention: str | int = "1 months",
+        compression: str | None = None,
         delay: bool = False,
         mode: str = "a",
         buffering: int = 1,
@@ -73,7 +72,7 @@ class FileHandler:
         self.buffering = buffering
         self.encoding = encoding
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, object]]:
         """Iterate over non-None attributes for handler configuration."""
         for attribute, value in self.__dict__.items():
             if value is not None:
