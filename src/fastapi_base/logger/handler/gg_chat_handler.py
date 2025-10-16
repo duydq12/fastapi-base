@@ -36,7 +36,7 @@ class GGChatHandler(logging.Handler):
         self.service_name = service_name
         self.enqueue = enqueue
         self._filter = log_filter
-        self._webhook: str = settings.GOOGLE_CHAT_WEBHOOK
+        self._webhook: str | None = settings.GOOGLE_CHAT_WEBHOOK
 
         if not self._webhook:
             raise ValueError("Invalid Google chat webhook url")

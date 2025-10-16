@@ -77,7 +77,7 @@ class BusinessException(Exception):  # noqa
 
         return self
 
-    def as_dict(self) -> dict[str, int | str]:
+    def as_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the exception.
 
         Returns:

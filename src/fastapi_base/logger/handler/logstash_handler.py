@@ -43,8 +43,8 @@ class LogStashHandler(logging.Handler):
         }
         self.enqueue = enqueue
         self._filter = log_filter
-        self._host: str = settings.LOGSTASH_HOST
-        self._port: int = settings.LOGSTASH_PORT
+        self._host: str | None = settings.LOGSTASH_HOST
+        self._port: int | None = settings.LOGSTASH_PORT
 
         if not self._host:
             raise ValueError("Invalid Logstash host")

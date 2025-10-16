@@ -11,7 +11,7 @@ Functions:
 """
 
 from datetime import datetime
-from typing import TypeVar
+from typing import Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, create_model, field_validator
 
@@ -74,10 +74,10 @@ def all_optional(name: str, model: type[BaseModel]) -> type[BaseModel]:
         type[BaseModel]: New model class with all fields optional.
     """
     fields = {
-        field_name: (field.annotation | None, None)
+        field_name: (Optional[field.annotation], None)  # noqa UP045
         for field_name, field in model.model_fields.items()
     }
-    return create_model(name, **fields)
+    return create_model(name, **fields)  # type: ignore[call-overload, no-any-return]
 
 
 def ignore_numpy_fields(name: str, model: type[BaseModel]) -> type[BaseModel]:
@@ -105,7 +105,7 @@ def ignore_numpy_fields(name: str, model: type[BaseModel]) -> type[BaseModel]:
             new_fields[field_name] = (field_info.annotation, field_info.default)
 
     # Use create_model to dynamically generate a new model class.
-    return create_model(name, **new_fields)
+    return create_model(name, **new_fields)  # type: ignore[call-overload, no-any-return]
 
 
 class DateBetween(BaseModel):
