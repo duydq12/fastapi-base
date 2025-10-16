@@ -57,6 +57,8 @@ async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credentia
         BusinessException: If authentication fails due to incorrect username or password.
     """
     try:
+        if not settings.BASIC_USERNAME or not settings.BASIC_PASSWORD:
+            raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value from None
         correct_username = verify_password(credentials.username, settings.BASIC_USERNAME)
         correct_password = verify_password(credentials.password, settings.BASIC_PASSWORD)
         if not (correct_username and correct_password):

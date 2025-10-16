@@ -36,6 +36,8 @@ class SessionManager:
             host (str): Database connection string.
             engine_kwargs (dict, optional): Additional engine configuration.
         """
+        if engine_kwargs is None:
+            engine_kwargs = {}
         self._engine: Engine | None = create_engine(host, **engine_kwargs)
         self._sessionmaker: sessionmaker[Session] | None = sessionmaker(autocommit=False, autoflush=False,
                                                                         bind=self._engine)

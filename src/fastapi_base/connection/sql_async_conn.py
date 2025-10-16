@@ -35,6 +35,8 @@ class SessionManager:
             host (str): Database connection string.
             engine_kwargs (dict, optional): Additional engine configuration.
         """
+        if engine_kwargs is None:
+            engine_kwargs = {}
         self._engine: AsyncEngine | None = create_async_engine(host, **engine_kwargs)
         self._sessionmaker: async_sessionmaker[AsyncSession] | None = async_sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine, expire_on_commit=False
