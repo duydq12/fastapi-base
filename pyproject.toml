@@ -39,14 +39,16 @@ dependencies = [
 # Optional dependencies (from extras_require)
 [project.optional-dependencies]
 dev = [
-    "black",
-    "flake8",
-    "flake8-pyproject",
+    "ruff",
+    "typos",
+    "mypy",
     "pytest",
-    "pytest-asyncio",
+    "coverage",
+    "pytest-cov",
     "pytest-mock",
+    "pytest-asyncio",
     "httpx",
-    "typing_extensions"
+    "numpy",
 ]
 logger = [
     "python-logstash",
@@ -91,9 +93,15 @@ fastapi = [
     "fastapi_health",
     "passlib",
     "python-multipart",
-    "bcrypt",
+    "bcrypt==4.3.0",
     "python-jose",
     "uvicorn[standard]",
+]
+
+all = [
+    "fastapi_base[logger]",
+    "fastapi_base[db]",
+    "fastapi_base[fastapi]",
 ]
 
 [project.urls]
