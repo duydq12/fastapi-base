@@ -1,8 +1,8 @@
-"""Unit tests for Singleton design pattern in fastapi_base.pattern.
+"""Unit tests for Singleton design pattern in fastwings.pattern.
 
 Verifies that only one instance is created and shared.
 """
-from fastapi_base.pattern import Singleton
+from fastwings.pattern import Singleton
 
 
 def test_singleton_pattern():

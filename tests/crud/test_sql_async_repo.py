@@ -1,4 +1,4 @@
-"""Unit tests for SQLAsyncRepository (asynchronous CRUD) in fastapi_base.
+"""Unit tests for SQLAsyncRepository (asynchronous CRUD) in fastwings.
 
 Covers async create and get operations using a mock SQLAlchemy model and async session.
 """
@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from fastapi_base.crud.sql_async_repo import SQLAsyncRepository
-from fastapi_base.model import Base
+from fastwings.crud.sql_async_repo import SQLAsyncRepository
+from fastwings.model import Base
 
 
 class MockModel(Base):

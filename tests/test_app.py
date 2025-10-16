@@ -1,11 +1,11 @@
-"""Unit tests for FastAPI app endpoints in fastapi_base.
+"""Unit tests for FastAPI app endpoints in fastwings.
 
 Covers health check endpoint and response validation.
 """
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from fastapi_base.app import app
+from fastwings.app import app
 
 
 @pytest.mark.asyncio

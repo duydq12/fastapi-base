@@ -15,7 +15,7 @@ from typing import Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, create_model, field_validator
 
-from fastapi_base.model import Base
+from fastwings.model import Base
 
 SchemaInstance = TypeVar("SchemaInstance", bound=BaseModel)
 ModelInstance = TypeVar("ModelInstance", bound=Base)

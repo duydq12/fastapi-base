@@ -15,21 +15,21 @@ Some module in project
 ## Install
 With using the logger with 3rdParty handlers
 ```
-$ pip install fastapi-base[logger-logstash,logger-ggchat]
+$ pip install fastwings[logger-logstash,logger-ggchat]
 ```
 
 # Usage
 ## Config middleware, exception_handler, logger with uvicorn
 ```
-from fastapi_base.app import app
-from fastapi_base.logger import configure_logger, get_uvicorn_configure_logger
-from fastapi_base.logger.filter import HealthCheckFilter
-from fastapi_base.logger.formatter import DEFAULT_FORMATTER
-from fastapi_base.logger.handler.logstash_handler import LogStashHandler
-from fastapi_base.logger.handler.file_handler import FileHandler
-from fastapi_base.logger.handler.stdout_handler import StdoutHandler
-from fastapi_base.middleware.common_handler import timer_middleware
-from fastapi_base.middleware.exception_handler import business_exception_handler
+from fastwings.app import app
+from fastwings.logger import configure_logger, get_uvicorn_configure_logger
+from fastwings.logger.filter import HealthCheckFilter
+from fastwings.logger.formatter import DEFAULT_FORMATTER
+from fastwings.logger.handler.logstash_handler import LogStashHandler
+from fastwings.logger.handler.file_handler import FileHandler
+from fastwings.logger.handler.stdout_handler import StdoutHandler
+from fastwings.middleware.common_handler import timer_middleware
+from fastwings.middleware.exception_handler import business_exception_handler
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 

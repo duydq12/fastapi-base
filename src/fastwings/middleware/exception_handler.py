@@ -10,7 +10,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from fastapi_base.exception import BusinessException
+from fastwings.exception import BusinessException
 
 
 async def business_exception_handler(_: Request, exc: BusinessException) -> JSONResponse:

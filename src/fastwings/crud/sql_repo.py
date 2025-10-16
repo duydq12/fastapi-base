@@ -14,8 +14,8 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from fastapi_base.error_code import ServerErrorCode
-from fastapi_base.model import Base
+from fastwings.error_code import ServerErrorCode
+from fastwings.model import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)

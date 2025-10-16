@@ -9,7 +9,7 @@ from json import dumps
 
 import requests
 
-from fastapi_base.config import settings
+from fastwings.config import settings
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 

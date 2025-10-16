@@ -3,8 +3,8 @@ from io import StringIO
 
 from loguru import logger
 
-from fastapi_base.config import settings
-from fastapi_base.timer import timeit
+from fastwings.config import settings
+from fastwings.timer import timeit
 
 
 def test_timeit_decorator_logs(monkeypatch):

@@ -14,7 +14,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import Session, sessionmaker
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from fastapi_base.config import settings
+from fastwings.config import settings
 
 logger = logging.getLogger(__name__)
 

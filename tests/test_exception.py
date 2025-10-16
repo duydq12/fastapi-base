@@ -1,6 +1,6 @@
-from fastapi_base.config import settings
-from fastapi_base.exception import BusinessException, get_traceback
-from fastapi_base.response import ExceptionDetail
+from fastwings.config import settings
+from fastwings.exception import BusinessException, get_traceback
+from fastwings.response import ExceptionDetail
 
 
 def test_get_traceback_returns_string():

@@ -4,14 +4,14 @@ import tempfile
 
 import pytest
 
-from fastapi_base.config import settings
-from fastapi_base.logger import InterceptHandler, get_uvicorn_configure_logger
-from fastapi_base.logger.filter import HealthCheckFilter
-from fastapi_base.logger.formatter.json_formatter import JSONFormatter
-from fastapi_base.logger.handler.file_handler import FileHandler
-from fastapi_base.logger.handler.gg_chat_handler import GGChatHandler
-from fastapi_base.logger.handler.logstash_handler import LogStashHandler
-from fastapi_base.logger.handler.stdout_handler import StdoutHandler
+from fastwings.config import settings
+from fastwings.logger import InterceptHandler, get_uvicorn_configure_logger
+from fastwings.logger.filter import HealthCheckFilter
+from fastwings.logger.formatter.json_formatter import JSONFormatter
+from fastwings.logger.handler.file_handler import FileHandler
+from fastwings.logger.handler.gg_chat_handler import GGChatHandler
+from fastwings.logger.handler.logstash_handler import LogStashHandler
+from fastwings.logger.handler.stdout_handler import StdoutHandler
 
 
 def test_intercept_handler_routing(caplog):

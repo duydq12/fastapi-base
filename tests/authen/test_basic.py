@@ -1,4 +1,4 @@
-"""Unit tests for HTTP Basic authentication in fastapi_base.authen.basic.
+"""Unit tests for HTTP Basic authentication in fastwings.authen.basic.
 
 Covers successful and failed authentication scenarios.
 """
@@ -6,10 +6,10 @@ Covers successful and failed authentication scenarios.
 import pytest
 from fastapi.security import HTTPBasicCredentials
 
-from fastapi_base.authen import basic
-from fastapi_base.config import settings
-from fastapi_base.error_code import AuthErrorCode
-from fastapi_base.exception import BusinessException
+from fastwings.authen import basic
+from fastwings.config import settings
+from fastwings.error_code import AuthErrorCode
+from fastwings.exception import BusinessException
 
 HASH_USERNAME = "$2b$12$ZSmiD7O4XwgqLK48pVB5tuofZxPPW0g8FbC28P7CUVuwMWkMpcGK2"  # noqa: S105
 HASH_PASSWORD = "$2b$12$uao1W/hWmZ7Ta8ftA6vvBe..L8f7lw9t/KaWX5BkEbbVQyoQ7Nx7K"  # noqa: S105

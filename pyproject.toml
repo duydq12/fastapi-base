@@ -9,11 +9,11 @@ build-backend = "setuptools.build_meta"
 # Project Metadata
 # ======================================================================
 [project]
-name = "fastapi_base"
+name = "fastwings"
 version = "0.0.17"
 description = "Provides several modules that help improve web application development using FastAPI"
 readme = "README.md"
-keywords = [ "fastapi_base", "fastapi" ]
+keywords = [ "fastwings", "fastapi_base", "fastapi_utils", "fastapi_helper", "fastapi"]
 authors = [
     { name = "Dao Quang Duy", email = "duydaoquang12@gmail.com" },
 ]
@@ -99,9 +99,9 @@ fastapi = [
 ]
 
 all = [
-    "fastapi_base[logger]",
-    "fastapi_base[db]",
-    "fastapi_base[fastapi]",
+    "fastwings[logger]",
+    "fastwings[db]",
+    "fastwings[fastapi]",
 ]
 
 [project.urls]
@@ -287,7 +287,7 @@ ignore_missing_imports = true
 # ======================================================================
 [tool.coverage.run]
 branch = true
-source = ["fastapi_base"]
+source = ["fastwings"]
 
 [tool.coverage.report]
 exclude_lines = [

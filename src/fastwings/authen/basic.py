@@ -12,8 +12,8 @@ from fastapi import Depends
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
 
-from fastapi_base.config import settings
-from fastapi_base.error_code import AuthErrorCode
+from fastwings.config import settings
+from fastwings.error_code import AuthErrorCode
 
 basic_credential = HTTPBasic()
 

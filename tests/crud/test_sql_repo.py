@@ -1,4 +1,4 @@
-"""Unit tests for SQLRepository (synchronous CRUD) in fastapi_base.
+"""Unit tests for SQLRepository (synchronous CRUD) in fastwings.
 
 Covers create, read, update, and soft delete operations using a mock SQLAlchemy model and session.
 """
@@ -11,8 +11,8 @@ from sqlalchemy import UUID as UUID_SQL
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from fastapi_base.crud.sql_repo import SQLRepository
-from fastapi_base.model import Base
+from fastwings.crud.sql_repo import SQLRepository
+from fastwings.model import Base
 
 
 class MockModel(Base):

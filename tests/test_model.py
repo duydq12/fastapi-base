@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from fastapi_base.model import Base as GlobalBase
+from fastwings.model import Base as GlobalBase
 
 
 @pytest.mark.parametrize(

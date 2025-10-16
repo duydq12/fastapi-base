@@ -1,4 +1,4 @@
-"""Logger handler module initialization for fastapi_base.
+"""Logger handler module initialization for fastwings.
 
 Provides file, stdout, logstash, and Google Chat handlers for logging.
 """

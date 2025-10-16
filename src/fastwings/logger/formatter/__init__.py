@@ -1,6 +1,6 @@
 """Logger Formatter Module.
 
-This module provides default log formatting for the fastapi_base logger package.
+This module provides default log formatting for the fastwings logger package.
 
 Attributes:
     DEFAULT_FORMATTER (str): The default log format string used for log output.

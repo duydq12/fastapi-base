@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 
 from loguru import logger
 
-from fastapi_base.config import settings
+from fastwings.config import settings
 
 T = TypeVar("T")
 Function = Callable[..., T]

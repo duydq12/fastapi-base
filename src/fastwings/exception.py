@@ -15,8 +15,8 @@ from typing import Any
 
 from starlette import status
 
-from fastapi_base.config import settings
-from fastapi_base.response import ExceptionDetail
+from fastwings.config import settings
+from fastwings.response import ExceptionDetail
 
 
 def get_traceback(ex: Exception) -> str:

@@ -16,8 +16,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from pydantic import ValidationError
 
-from fastapi_base.config import settings
-from fastapi_base.error_code import AuthErrorCode
+from fastwings.config import settings
+from fastwings.error_code import AuthErrorCode
 
 reusable_oauth2 = HTTPBearer(scheme_name="Authorization")
 

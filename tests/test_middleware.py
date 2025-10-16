@@ -1,4 +1,4 @@
-"""Unit tests for FastAPI middleware and exception handlers in fastapi_base.
+"""Unit tests for FastAPI middleware and exception handlers in fastwings.
 
 Covers timer middleware and custom business exception handler.
 """
@@ -7,10 +7,10 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from fastapi_base.exception import BusinessException
-from fastapi_base.middleware.common_handler import timer_middleware
-from fastapi_base.middleware.exception_handler import business_exception_handler
-from fastapi_base.response import ExceptionDetail
+from fastwings.exception import BusinessException
+from fastwings.middleware.common_handler import timer_middleware
+from fastwings.middleware.exception_handler import business_exception_handler
+from fastwings.response import ExceptionDetail
 
 # --- Setup for timer_middleware ---
 app_timer = FastAPI()

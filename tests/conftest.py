@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for fastapi_base test suite.
+"""Pytest configuration and fixtures for fastwings test suite.
 
 Provides mock database session objects for synchronous and asynchronous tests.
 """

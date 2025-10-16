@@ -1,4 +1,4 @@
-"""Unit tests for JWT Bearer authentication in fastapi_base.authen.bearer.
+"""Unit tests for JWT Bearer authentication in fastwings.authen.bearer.
 
 Covers JWT encoding, decoding, expired and invalid token handling.
 """
@@ -6,8 +6,8 @@ import time
 
 import pytest
 
-from fastapi_base.authen import bearer
-from fastapi_base.error_code import AuthErrorCode
+from fastwings.authen import bearer
+from fastwings.error_code import AuthErrorCode
 
 
 class TestBearerAuth:

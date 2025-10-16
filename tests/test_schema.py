@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field
 
-from fastapi_base.schema import BaseRequestSchema, DateBetween, Paging, all_optional, ignore_numpy_fields
+from fastwings.schema import BaseRequestSchema, DateBetween, Paging, all_optional, ignore_numpy_fields
 
 
 class AliasSchema(BaseRequestSchema):

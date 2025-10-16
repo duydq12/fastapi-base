@@ -1,4 +1,4 @@
-"""Database connection module initialization for fastapi_base.
+"""Database connection module initialization for fastwings.
 
 Provides synchronous and asynchronous database connection utilities.
 """

@@ -10,7 +10,7 @@ from collections.abc import Callable
 from logstash import TCPLogstashHandler
 from starlette import status
 
-from fastapi_base.config import settings
+from fastwings.config import settings
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 

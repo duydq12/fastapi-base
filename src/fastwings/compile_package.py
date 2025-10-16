@@ -1,4 +1,4 @@
-"""Compile and build package utilities for fastapi_base.
+"""Compile and build package utilities for fastwings.
 
 Provides functions to combine, compile, and clean Python packages using Cython.
 
@@ -24,7 +24,7 @@ from setuptools.extension import Extension
 
 """
 Find script to compile package and Run
-    eval `python -c 'import fastapi_base as _;print(f"compile_path={_.__path__[0]}/compile_package.py")'`
+    eval `python -c 'import fastwings as _;print(f"compile_path={_.__path__[0]}/compile_package.py")'`
     python $compile_path build_ext --inplace --package app/src/core
 """
 

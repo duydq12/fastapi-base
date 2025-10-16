@@ -1,4 +1,4 @@
-"""Logger module initialization for fastapi_base.
+"""Logger module initialization for fastwings.
 
 Provides logging configuration and handler utilities for FastAPI applications.
 

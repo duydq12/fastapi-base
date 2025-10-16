@@ -14,8 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_base.error_code import ServerErrorCode
-from fastapi_base.model import Base
+from fastwings.error_code import ServerErrorCode
+from fastwings.model import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)

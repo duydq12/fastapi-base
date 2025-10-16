@@ -11,8 +11,8 @@ from enum import Enum
 
 from starlette import status
 
-from fastapi_base.exception import BusinessException
-from fastapi_base.response import ExceptionDetail
+from fastwings.exception import BusinessException
+from fastwings.response import ExceptionDetail
 
 
 class ServerErrorCode(Enum):
