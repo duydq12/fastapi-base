@@ -6,11 +6,9 @@ from fastapi_base.pattern import Singleton
 
 
 def test_singleton_pattern():
-    """Tests that the Singleton metaclass works correctly.
-
-    Asserts that multiple instances are the same and share state.
-    """
+    """Test that the Singleton metaclass ensures a single shared instance and state."""
     class MyService(metaclass=Singleton):
+        """Dummy service class using Singleton metaclass for testing."""
         def __init__(self):
             self.value = 1
 

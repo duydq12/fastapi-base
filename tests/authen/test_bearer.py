@@ -3,18 +3,13 @@
 Covers JWT encoding, decoding, expired and invalid token handling.
 """
 import time
-from unittest.mock import patch
 
 import pytest
 
 from fastapi_base.authen import bearer
 from fastapi_base.error_code import AuthErrorCode
 
-SECRET_KEY = "your-test-secret-key" # noqa: S105
-ALGORITHM = "HS256"
 
-@patch("fastapi_base.authen.bearer.SECRET_KEY", SECRET_KEY)
-@patch("fastapi_base.authen.bearer.ALGORITHM", ALGORITHM)
 class TestBearerAuth:
     def test_jwt_encode_decode_success(self):
         """Tests successful JWT encoding and decoding.
@@ -46,7 +41,7 @@ class TestBearerAuth:
 
         Asserts that the correct exception is raised for invalid token.
         """
-        invalid_token = "this.is.not.a.valid.token" # noqa: S105
+        invalid_token = "this.is.not.a.valid.token"  # noqa: S105
         with pytest.raises(Exception) as excinfo:
             bearer.jwt_decode(invalid_token)
         assert excinfo.value == AuthErrorCode.INVALID_ACCESS_TOKEN.value
