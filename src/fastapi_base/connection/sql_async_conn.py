@@ -9,18 +9,12 @@ from collections.abc import AsyncIterator
 from socket import gaierror
 from typing import Any
 
-import decouple
 from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
-DB_HOST = decouple.config("DB_HOST")
-DB_NAME = decouple.config("DB_NAME")
-DB_USER = decouple.config("DB_USER")
-DB_PASSWORD = decouple.config("DB_PASSWORD")
-DB_ENGINE = decouple.config("DB_ENGINE")
-DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
+from fastapi_base.config import settings
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
@@ -41,10 +35,6 @@ class SessionManager:
             host (str): Database connection string.
             engine_kwargs (dict, optional): Additional engine configuration.
         """
-        if not engine_kwargs:
-            engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
-        else:
-            engine_kwargs.update({"pool_pre_ping": True, "pool_size": DB_POOL_SIZE})
         self._engine: AsyncEngine | None = create_async_engine(host, **engine_kwargs)
         self._sessionmaker: async_sessionmaker[AsyncSession] | None = async_sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine, expire_on_commit=False
@@ -105,15 +95,17 @@ class SessionManager:
                 await session.close()
 
 
-if DB_ENGINE == "postgre":
+if settings.DB_ENGINE == "postgre":
     engine = "postgresql+asyncpg"
-elif DB_ENGINE == "mysql":
+elif settings.DB_ENGINE == "mysql":
     engine = "mysql+asyncmy"
 else:
-    raise ValueError(f"Not support for engine: {DB_ENGINE}")
+    raise ValueError(f"Not support for engine: {settings.DB_ENGINE}")
 
-str_connection = f"{engine}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-sessionmanager = SessionManager(str_connection)
+str_connection = f"{engine}://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}/{settings.DB_NAME}"
+sessionmanager = SessionManager(
+    str_connection, engine_kwargs={"pool_pre_ping": True, "pool_size": settings.DB_POOL_SIZE}
+)
 
 
 async def get_db_session() -> AsyncIterator[AsyncSession]:

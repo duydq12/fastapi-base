@@ -4,13 +4,12 @@ Provides automatic table naming and dictionary conversion for model instances.
 
 Classes:
     Base: Base SQLAlchemy model with automatic tablename and dict conversion.
-Functions:
-    pluralize: Pluralizes English words for table naming.
 """
 
 import re
 from typing import Any
 
+import inflect
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.declarative import declared_attr
@@ -24,51 +23,7 @@ NAMING_CONVENTION = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",  # ForeignKey
     "pk": "pk_%(table_name)s",  # PrimaryKey
 }
-
-
-def pluralize(word: str) -> str:
-    """Pluralizes an English word, handling regular and irregular cases.
-
-    Args:
-        word (str): Singular word to pluralize.
-
-    Returns:
-        str: Plural form of the word.
-    """
-    exceptions = {
-        "man": "men",
-        "woman": "women",
-        "child": "children",
-        "tooth": "teeth",
-        "foot": "feet",
-        "person": "people",
-        "mouse": "mice",
-        "goose": "geese",
-        "ox": "oxen",
-        "leaf": "leaves",
-        "knife": "knives",
-        "life": "lives",
-        "elf": "elves",
-        "calf": "calves",
-        "half": "halves",
-        "shelf": "shelves",
-        "thief": "thieves",
-        "wife": "wives",
-        "wolf": "wolves",
-        "belief": "beliefs",
-    }
-
-    if word in exceptions:
-        return exceptions[word]
-
-    if word.endswith("s") or word.endswith("x") or word.endswith("ch") or word.endswith("sh"):
-        word = word + "es"
-    elif word.endswith("y") and word[-2] not in "aeiou":
-        word = word[:-1] + "ies"
-    else:
-        word = word + "s"
-
-    return word
+p = inflect.engine()
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -93,10 +48,12 @@ class Base(AsyncAttrs, DeclarativeBase):
         Returns:
             str: Table name for the model.
         """
-        table_name = cls.__name__
-        table_name = pluralize(table_name)
-        word_list = re.findall("[A-Z][^A-Z]*", table_name)
-        return "_".join(word_list).lower()
+        words = re.findall("[A-Z][^A-Z]*", cls.__name__)
+        if len(words) == 1:
+            return p.plural(words[0].lower())
+        elif len(words) > 1:
+            return "_".join(words[:-1]).lower() + "_" + p.plural(words[-1].lower())
+        return cls.__name__.lower()
 
     def to_dict(
         self, ignore_fields: tuple[str, ...] = ("is_deleted", "password", "updated_at", "_sa_instance_state")
@@ -115,7 +72,7 @@ class Base(AsyncAttrs, DeclarativeBase):
                 del result[field]
 
         for k, v in result.items():
-            if isinstance(v, InstrumentedList):
+            if isinstance(v, (InstrumentedList, list)):
                 # Recursion on joined relationship fields.
                 result[k] = [obj.to_dict(ignore_fields) for obj in v]
 

@@ -1,22 +1,19 @@
-"""Defines base schemas, metaclasses, and data types for API requests and responses.
-
-Provides utilities for schema aliasing, paging, and date range handling.
+"""Schema definitions and utilities for FastAPI API requests and responses.
 
 Classes:
-    BaseRequestSchema: Base schema for API requests, supports field aliasing.
+    BaseRequestSchema: Base schema for API requests, supports configuration and field aliasing.
     Paging: Schema for paginated API requests.
-    AllOptionalMeta: Metaclass to make all fields optional (for PATCH requests).
-    IgnoreNumpyMeta: Metaclass to ignore numpy fields in a model.
     DateBetween: Schema for passing a date range between two dates.
+
 Functions:
-    collect_aliases: Collects aliases for fields in a schema.
+    all_optional: Creates a new Pydantic model with all fields being optional.
+    ignore_numpy_fields: Creates a new Pydantic model with NumPy fields excluded.
 """
 
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import TypeVar
 
-from pydantic import BaseModel, _internal
-from pydantic.v1 import validator
+from pydantic import BaseModel, ConfigDict, create_model, field_validator
 
 from fastapi_base.model import Base
 
@@ -25,17 +22,19 @@ ModelInstance = TypeVar("ModelInstance", bound=Base)
 
 
 class BaseRequestSchema(BaseModel):
-    """Base schema for API requests, supports configuration and field aliasing."""
-    class Config:
-        """Pydantic configuration for BaseRequestSchema.
+    """Base schema for API requests, supports configuration and field aliasing.
 
-        Enables attribute population, assignment validation, enum value usage, and allows arbitrary types.
-        """
-        from_attributes = True
-        arbitrary_types_allowed = True
-        validate_assignment = True
-        populate_by_name = True
-        use_enum_values = True
+    Provides:
+        - Pydantic configuration for attribute population, assignment validation, enum value usage, and arbitrary types.
+        - Utility method to collect field aliases for serialization/deserialization.
+    """
+    model_config = ConfigDict(
+        from_attributes=True,
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        populate_by_name=True,
+        use_enum_values=True,
+    )
 
     @classmethod
     def collect_aliases(cls: type[BaseModel]) -> dict[str, str]:
@@ -57,73 +56,56 @@ class Paging(BaseRequestSchema):
     """Paging schema for API requests.
 
     Attributes:
-        offset: Start position.
-        limit: Number of records to return.
+        offset (int | None): Start position.
+        limit (int | None): Number of records to return.
     """
-    offset: int | None
-    limit: int | None
+    offset: int | None = None
+    limit: int | None = None
 
 
-class AllOptionalMeta(_internal._model_construction.ModelMetaclass):
-    """Metaclass to make all fields in a model optional, useful for PATCH requests."""
-    def __new__(cls, cls_name: str, bases: tuple[type[Any], ...], namespace: dict[str, Any], **kwargs: Any) -> type:
-        """Create a new class with all fields set as optional.
+def all_optional(name: str, model: type[BaseModel]) -> type[BaseModel]:
+    """Creates a new Pydantic model with all fields being optional.
 
-        Args:
-            cls_name: Name of the class being created.
-            bases: Base classes.
-            namespace: Class namespace dictionary.
-            **kwargs: Additional keyword arguments.
+    Args:
+        name (str): The name for the new Pydantic model class.
+        model (type[BaseModel]): The original Pydantic model class to modify.
 
-        Returns:
-            type: The newly constructed class with all fields optional.
-        """
-        annotations: dict[str, Any] = namespace.get("__annotations__", {})
-
-        for base in bases:
-            for base_ in base.__mro__:
-                if base_ is BaseModel:
-                    break
-                annotations.update(base_.__annotations__)
-
-        for field in annotations:
-            if not field.startswith("__"):
-                annotations[field] = annotations[field] | None
-
-        namespace["__annotations__"] = annotations
-        return super().__new__(cls, cls_name, bases, namespace, **kwargs)
+    Returns:
+        type[BaseModel]: New model class with all fields optional.
+    """
+    fields = {
+        field_name: (field.annotation | None, None)
+        for field_name, field in model.model_fields.items()
+    }
+    return create_model(name, **fields)
 
 
-class IgnoreNumpyMeta(_internal._model_construction.ModelMetaclass):
-    """Metaclass to ignore fields of numpy type in a model."""
-    def __new__(cls, cls_name: str, bases: tuple[type[Any], ...], namespace: dict[str, Any], **kwargs: Any) -> type:
-        """Create a new class with numpy fields ignored (set to None).
+def ignore_numpy_fields(name: str, model: type[BaseModel]) -> type[BaseModel]:
+    """Creates a new Pydantic model that excludes fields with NumPy type annotations.
 
-        Args:
-            cls_name: Name of the class being created.
-            bases: Base classes.
-            namespace: Class namespace dictionary.
-            **kwargs: Additional keyword arguments.
+    This function iterates through the fields of the input model and builds a new model containing only those fields
+    whose type annotation does not appear to be a NumPy type (by checking for 'numpy.' or 'npt.' in the type's string
+    representation).
 
-        Returns:
-            type: The newly constructed class with numpy fields ignored.
-        """
-        annotations: dict[str, Any] = namespace.get("__annotations__", {})
+    Args:
+        name (str): The name for the new Pydantic model class.
+        model (type[BaseModel]): The original Pydantic model class to modify.
 
-        for base in bases:
-            for base_ in base.__mro__:
-                if base_ is BaseModel:
-                    break
-                annotations.update(base_.__annotations__)
+    Returns:
+        type[BaseModel]: New model class with NumPy fields excluded.
+    """
+    new_fields = {}
+    for field_name, field_info in model.model_fields.items():
+        # Get the string representation of the field's type annotation.
+        annotation_str = str(field_info.annotation)
 
-        for field in annotations:
-            if not field.startswith("__") and (
-                str(annotations[field]).find("npt.") > 0 or str(annotations[field]).find("numpy.") > 0
-            ):
-                annotations[field] = None
+        # If it's not a NumPy type, keep the field.
+        if "numpy." not in annotation_str and "npt." not in annotation_str:
+            # Recreate the field definition for the new model.
+            new_fields[field_name] = (field_info.annotation, field_info.default)
 
-        namespace["__annotations__"] = annotations
-        return super().__new__(cls, cls_name, bases, namespace, **kwargs)
+    # Use create_model to dynamically generate a new model class.
+    return create_model(name, **new_fields)
 
 
 class DateBetween(BaseModel):
@@ -136,7 +118,7 @@ class DateBetween(BaseModel):
     from_date: datetime
     to_date: datetime
 
-    @validator("from_date", "to_date", pre=True)
+    @field_validator("from_date", "to_date", mode='before')
     def parse_date(cls, value: str | datetime) -> datetime:
         """Parse date from string or datetime object.
 

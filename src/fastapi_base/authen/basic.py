@@ -8,15 +8,12 @@ Functions:
     basic_auth: FastAPI dependency to authenticate user using HTTP Basic credentials.
 """
 
-import decouple
 from fastapi import Depends
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
 
+from fastapi_base.config import settings
 from fastapi_base.error_code import AuthErrorCode
-
-USERNAME_HASH = decouple.config("BASIC_USERNAME")
-PASSWORD_HASH = decouple.config("BASIC_PASSWORD")
 
 basic_credential = HTTPBasic()
 
@@ -50,7 +47,7 @@ def get_password_hash(password: str) -> str:
     return pwd_hash
 
 
-async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credential)) -> None: # noqa: B008
+async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credential)) -> None:  # noqa: B008
     """FastAPI dependency to authenticate user using HTTP Basic credentials.
 
     Args:
@@ -60,8 +57,8 @@ async def basic_auth(credentials: HTTPBasicCredentials = Depends(basic_credentia
         BusinessException: If authentication fails due to incorrect username or password.
     """
     try:
-        correct_username = verify_password(credentials.username, USERNAME_HASH)
-        correct_password = verify_password(credentials.password, PASSWORD_HASH)
+        correct_username = verify_password(credentials.username, settings.BASIC_USERNAME)
+        correct_password = verify_password(credentials.password, settings.BASIC_PASSWORD)
         if not (correct_username and correct_password):
             raise AuthErrorCode.INCORRECT_USERNAME_PASSWORD.value from None
     except Exception:

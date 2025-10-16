@@ -75,7 +75,7 @@ class SQLRepository(Generic[ModelType]):
             BusinessException: On database error.
         """
         try:
-            obj_in_data = obj_in.dict(exclude_unset=True)
+            obj_in_data = obj_in.model_dump(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
             session.add(db_obj)
             session.commit()
@@ -107,7 +107,7 @@ class SQLRepository(Generic[ModelType]):
             BusinessException: On database error.
         """
         try:
-            update_data = obj_in if isinstance(obj_in, dict) else obj_in.dict(exclude_unset=True)
+            update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
             session.query(self.model).filter(self.model.id == obj_id).update(update_data)  # type: ignore
             session.commit()
         except SQLAlchemyError as ex:

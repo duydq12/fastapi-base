@@ -11,13 +11,12 @@ Functions:
 from __future__ import annotations
 
 import traceback
+from typing import Any
 
-import decouple
 from starlette import status
 
+from fastapi_base.config import settings
 from fastapi_base.response import ExceptionDetail
-
-ENV = decouple.config("ENV", "DEV")
 
 
 def get_traceback(ex: Exception) -> str:
@@ -42,6 +41,7 @@ class BusinessException(Exception):  # noqa
         message (str): Error message string.
         data: Additional error data or traceback.
     """
+
     def __init__(self, exception: ExceptionDetail, status_code: int = status.HTTP_400_BAD_REQUEST):
         """Initializes BusinessException with details and status code.
 
@@ -54,16 +54,27 @@ class BusinessException(Exception):  # noqa
         self.message = exception.message
         self.data = exception.data
 
-    def __call__(self, exception: Exception) -> BusinessException:
-        """Updates the exception data with traceback if in DEV environment.
+    def __call__(self, *args: Any, **kwargs: Any) -> BusinessException:
+        """Updates the exception data with traceback and context if provided.
+
+        If an Exception is passed as the first positional argument and DEBUG_MODE is enabled,
+        the traceback is added to the data. Any keyword arguments are added as context.
 
         Args:
-            exception (Exception): Exception instance.
+            *args: Positional arguments. If the first argument is an Exception, its traceback is included.
+            **kwargs: Additional context data to include in the exception.
 
         Returns:
-            BusinessException: Updated exception instance.
+            BusinessException: Updated exception instance with data and context.
         """
-        self.data = get_traceback(exception) if ENV == "DEV" else ""
+        self.data = {}
+        if args and isinstance(args[0], Exception):
+            self.data["traceback"] = get_traceback(args[0]) if settings.DEBUG_MODE else ""
+
+        # Handle additional context data
+        if kwargs:
+            self.data["context"] = kwargs
+
         return self
 
     def as_dict(self) -> dict[str, int | str]:
@@ -72,4 +83,7 @@ class BusinessException(Exception):  # noqa
         Returns:
             Dict[str, Union[int, str]]: Exception details as a dictionary.
         """
-        return {"status_code": self.status_code, "code": self.code, "message": self.message}
+        result = {"status_code": self.status_code, "code": self.code, "message": self.message}
+        if self.data:
+            result["data"] = self.data
+        return result

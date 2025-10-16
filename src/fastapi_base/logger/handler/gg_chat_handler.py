@@ -7,14 +7,16 @@ import logging
 from collections.abc import Callable
 from json import dumps
 
-import decouple
 import requests
+
+from fastapi_base.config import settings
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 
 
 class GGChatHandler(logging.Handler):
     """Handler for sending log messages to Google Chat via webhook."""
+
     def __init__(
         self,
         service_name: str = "",
@@ -34,7 +36,7 @@ class GGChatHandler(logging.Handler):
         self.service_name = service_name
         self.enqueue = enqueue
         self._filter = log_filter
-        self._webhook: str = decouple.config("GOOGLE_CHAT_WEBHOOK")
+        self._webhook: str = settings.GOOGLE_CHAT_WEBHOOK
 
         if not self._webhook:
             raise ValueError("Invalid Google chat webhook url")

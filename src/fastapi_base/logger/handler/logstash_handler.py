@@ -7,15 +7,17 @@ import logging
 import socket
 from collections.abc import Callable
 
-import decouple
 from logstash import TCPLogstashHandler
 from starlette import status
+
+from fastapi_base.config import settings
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 
 
 class LogStashHandler(logging.Handler):
     """Handler for sending log messages to Logstash via TCP."""
+
     def __init__(
         self,
         logstash_version: int = 1,
@@ -41,13 +43,13 @@ class LogStashHandler(logging.Handler):
         }
         self.enqueue = enqueue
         self._filter = log_filter
-        self._host: str = decouple.config("LOGSTASH_HOST")
-        self._port: int = decouple.config("LOGSTASH_PORT")
+        self._host: str = settings.LOGSTASH_HOST
+        self._port: int = settings.LOGSTASH_PORT
 
         if not self._host:
             raise ValueError("Invalid Logstash host")
 
-        if not self._port or isinstance(self._port, int):
+        if not self._port or not isinstance(self._port, int):
             raise ValueError("Invalid Logstash port")
 
         self.tcp_logstash = TCPLogstashHandler(self._host, self._port, version=logstash_version)

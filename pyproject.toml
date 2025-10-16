@@ -32,7 +32,8 @@ classifiers = [
 # Core dependencies (from install_requires)
 dependencies = [
     "loguru",
-    "python-decouple",
+    "pydantic-settings",
+    "inflect",
 ]
 
 # Optional dependencies (from extras_require)

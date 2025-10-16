@@ -11,12 +11,12 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any, TypeVar
 
-import decouple
 from loguru import logger
+
+from fastapi_base.config import settings
 
 T = TypeVar("T")
 Function = Callable[..., T]
-LOG_LEVEL_NO = logger.level(decouple.config("LOG_LEVEL", "DEBUG")).no
 
 
 def timeit(func: Function[T]) -> Function[T]:
@@ -30,9 +30,10 @@ def timeit(func: Function[T]) -> Function[T]:
     Returns:
         Function: Wrapped function with timing logic.
     """
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if LOG_LEVEL_NO <= 10:
+        if settings.DEBUG_MODE:
             start_time = time.time()
             result = func(*args, **kwargs)
             process_time = round(time.time() - start_time, 5)

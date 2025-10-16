@@ -8,19 +8,13 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-import decouple
 from sqlalchemy import Connection, Engine, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session, sessionmaker
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-DB_HOST = decouple.config("DB_HOST")
-DB_NAME = decouple.config("DB_NAME")
-DB_USER = decouple.config("DB_USER")
-DB_PASSWORD = decouple.config("DB_PASSWORD")
-DB_ENGINE = decouple.config("DB_ENGINE")
-DB_POOL_SIZE = decouple.config("DB_POOL_SIZE", cast=int, default=10)
+from fastapi_base.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +36,6 @@ class SessionManager:
             host (str): Database connection string.
             engine_kwargs (dict, optional): Additional engine configuration.
         """
-        if not engine_kwargs:
-            engine_kwargs = {"pool_pre_ping": True, "pool_size": DB_POOL_SIZE}
-        else:
-            engine_kwargs.update({"pool_pre_ping": True, "pool_size": DB_POOL_SIZE})
         self._engine: Engine | None = create_engine(host, **engine_kwargs)
         self._sessionmaker: sessionmaker[Session] | None = sessionmaker(autocommit=False, autoflush=False,
                                                                         bind=self._engine)
@@ -105,15 +95,17 @@ class SessionManager:
             session.close()
 
 
-if DB_ENGINE == "postgre":
+if settings.DB_ENGINE == "postgre":
     engine = "postgresql+psycopg2"
-elif DB_ENGINE == "mysql":
+elif settings.DB_ENGINE == "mysql":
     engine = "mysql+pymysql"
 else:
-    raise ValueError(f"Not support for engine: {DB_ENGINE}")
+    raise ValueError(f"Not support for engine: {settings.DB_ENGINE}")
 
-str_connection = f"{engine}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-sessionmanager = SessionManager(str_connection)
+str_connection = f"{engine}://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}/{settings.DB_NAME}"
+sessionmanager = SessionManager(
+    str_connection, engine_kwargs={"pool_pre_ping": True, "pool_size": settings.DB_POOL_SIZE}
+)
 
 
 def get_db_session() -> Iterator[Session]:

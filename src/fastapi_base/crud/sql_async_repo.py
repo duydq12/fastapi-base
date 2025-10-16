@@ -75,7 +75,7 @@ class SQLAsyncRepository(Generic[ModelType]):
             BusinessException: On database error.
         """
         try:
-            obj_in_data = obj_in.dict(exclude_unset=True)
+            obj_in_data = obj_in.model_dump(exclude_unset=True)
             db_obj = self.model(**obj_in_data)  # type: ignore
             session.add(db_obj)
             await session.commit()
@@ -108,7 +108,7 @@ class SQLAsyncRepository(Generic[ModelType]):
         """
         try:
             obj = (await session.execute(select(self.model).where(self.model.id == obj_id))).scalars().first()
-            update_data = obj_in if isinstance(obj_in, dict) else obj_in.dict(exclude_unset=True)
+            update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(obj, key, value)
             await session.commit()
