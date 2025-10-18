@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from fastwings.config import settings
+from fastwings.error_code import ServerErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -55,23 +56,27 @@ class SessionManager:
         self._sessionmaker = None
 
     @contextlib.contextmanager
-    def connect(self) -> Iterator[Connection]:
-        """Context manager for database connection.
+    def transaction(self) -> Iterator[Connection]:
+        """Context manager for database transactions.
+
+        Provides a database connection within a transaction context.
+        Automatically commits on success or rolls back on exception.
 
         Yields:
-            Connection: An active database connection.
+            Connection: SQLAlchemy database connection within a transaction.
 
         Raises:
-            Exception: If SessionManager is not initialized.
+            Exception: If the SessionManager is not initialized or if a
+                database error occurs during the transaction.
         """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
 
-        with self._engine.begin() as connection:
+        with self._engine.begin() as transaction:
             try:
-                yield connection
+                yield transaction
             except Exception:
-                connection.rollback()
+                transaction.rollback()
                 raise
 
     @contextlib.contextmanager
@@ -90,9 +95,10 @@ class SessionManager:
         session = self._sessionmaker()
         try:
             yield session
-        except Exception:
+            session.commit()
+        except Exception as ex:
             session.rollback()
-            raise
+            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
         finally:
             session.close()
 

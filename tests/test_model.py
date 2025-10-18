@@ -1,8 +1,8 @@
 import pytest
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String
+from sqlmodel import Field, Relationship
 
-from fastwings.model import Base as GlobalBase
+from fastwings.model import BaseModel as GlobalBase
 
 
 @pytest.mark.parametrize(
@@ -18,41 +18,44 @@ from fastwings.model import Base as GlobalBase
 )
 def test_tablename_generation(model_class_name, expected_table_name):
     """Test that __tablename__ is generated correctly from class name (plural, snake_case)."""
-    namespace = {"id": mapped_column(Integer, primary_key=True)}
+    annotations = {"id": int}
+    namespace = {
+        "__annotations__": annotations,
+        "id": Field(primary_key=True)
+    }
     TestModel = type(model_class_name, (GlobalBase,), namespace)
     assert TestModel.__tablename__ == expected_table_name
 
 
-class Customer(GlobalBase):
+class Customer(GlobalBase, table=True):
     """Test model representing a customer for table name and field mapping tests."""
-    __tablename__ = "customers"  # Define explicitly to avoid dynamic name issues
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50))
-    email: Mapped[str] = mapped_column(String(50))
-    password: Mapped[str] = mapped_column(String(100))
+    id: int = Field(primary_key=True)
+    name: str = Field(String(50))
+    email: str = Field(String(50))
+    password: str = Field(String(100))
 
 
-class Product(GlobalBase):
+class Product(GlobalBase, table=True):
     """Test model representing a product for table name and field mapping tests."""
-    __tablename__ = "products"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50))
-    sku: Mapped[str] = mapped_column(String(20))
-    price: Mapped[float]
+    id: int = Field(primary_key=True)
+    name: str = Field(String(50))
+    sku: str = Field(String(20))
+    price: float
 
 
-class Address(GlobalBase):
-    __tablename__ = "addresses"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    street: Mapped[str]
-    city: Mapped[str]
+class User(GlobalBase, table=True):
+    id: int = Field(primary_key=True)
+    name: str
+    addresses: list["Address"] = Relationship(back_populates="user")
 
 
-class User(GlobalBase):
-    __tablename__ = "users"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str]
-    addresses = Mapped[list[Address]]
+class Address(GlobalBase, table=True):
+    id: int = Field(primary_key=True)
+    street: str
+    city: str
+
+    user_id: int = Field(foreign_key="users.id")
+    user: "User" = Relationship(back_populates="addresses")
 
 
 @pytest.mark.parametrize(
@@ -60,20 +63,25 @@ class User(GlobalBase):
     [
         (
             Customer(id=1, name="John Doe", email="john.doe@example.com", password="a_secret_password"),  # noqa S106
-            ("is_deleted", "password", "updated_at", "_sa_instance_state"),  # default ignore fields
+            ("is_deleted", "password", "created_at", 'created_by', "updated_at", "updated_by", "_sa_instance_state"),
+            # default ignore fields
             {"id": 1, "name": "John Doe", "email": "john.doe@example.com"}
         ),
         (
             Product(id=101, name="Laptop", sku="LPTP-101", price=1200.00),
-            ("sku", "price", "_sa_instance_state"),
+            (
+                "sku", "price", "is_deleted", "created_at", 'created_by', "updated_at", "updated_by",
+                "_sa_instance_state"),
             {"id": 101, "name": "Laptop"}
         ),
         (
             User(id=1, name="Jane Doe", addresses=[Address(id=201, street="123 Main St", city="Anytown"),
                                                    Address(id=202, street="456 Oak Ave", city="Anytown")]),
-            ("is_deleted", "password", "updated_at", "_sa_instance_state"),  # default ignore fields
-            {"id": 1, "name": "Jane Doe", "addresses": [{"id": 201, "street": "123 Main St", "city": "Anytown"},
-                                                        {"id": 202, "street": "456 Oak Ave", "city": "Anytown"}]}
+            ("is_deleted", "password", "created_at", 'created_by', "updated_at", "updated_by", "_sa_instance_state"),
+            # default ignore fields
+            {"id": 1, "name": "Jane Doe", "addresses": [
+                {"id": 201, "street": "123 Main St", "city": "Anytown", "user": {}},
+                {"id": 202, "street": "456 Oak Ave", "city": "Anytown", "user": {}}]}
         )
     ]
 )

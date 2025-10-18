@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, a
 from sqlalchemy.future import select
 
 from fastwings.config import settings
+from fastwings.error_code import ServerErrorCode
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
@@ -56,22 +57,47 @@ class SessionManager:
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
-        """Async context manager for database connection.
+        """Async context manager for direct database connections.
+
+        Provides a raw database connection for operations that don't require
+        a full session. Useful for DDL operations, raw SQL execution, or
+        when fine-grained connection control is needed.
 
         Yields:
-            AsyncConnection: An active async database connection.
+            AsyncConnection: SQLAlchemy async database connection.
 
         Raises:
-            Exception: If SessionManager is not initialized.
+            Exception: If the AsyncSessionManager is not initialized.
         """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
 
-        async with self._engine.begin() as connection:
+        async with self._engine.connect() as connection:
+            yield connection
+
+    @contextlib.asynccontextmanager
+    async def transaction(self) -> AsyncIterator[AsyncConnection]:
+        """Async context manager for database transactions.
+
+        Provides a database connection within a transaction context that
+        automatically commits on success or rolls back on exception.
+        This is useful for operations that require transactional guarantees.
+
+        Yields:
+            AsyncConnection: SQLAlchemy async database connection within a transaction.
+
+        Raises:
+            Exception: If the AsyncSessionManager is not initialized or if a
+                database error occurs during the transaction.
+        """
+        if self._engine is None:
+            raise Exception("SessionManager is not initialized")
+
+        async with self._engine.begin() as transaction:
             try:
-                yield connection
+                yield transaction
             except Exception:
-                await connection.rollback()
+                await transaction.rollback()
                 raise
 
     @contextlib.asynccontextmanager
@@ -90,9 +116,10 @@ class SessionManager:
         async with self._sessionmaker() as session:
             try:
                 yield session
-            except Exception:
+                await session.commit()
+            except Exception as ex:
                 await session.rollback()
-                raise
+                raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
             finally:
                 await session.close()
 

@@ -4,65 +4,234 @@ Provides methods for create, read, update, and delete operations using SQLAlchem
 
 Classes:
     SQLRepository: Synchronous CRUD repository for SQLAlchemy models.
+    SoftDeletableRepository: CRUD repository supporting soft deletion for SQLAlchemy models.
 """
 
 import logging
-import uuid
-from typing import Any, Generic, TypeVar
+from collections.abc import Sequence
+from typing import Any, Generic, TypeVar, cast
 
-from pydantic import BaseModel
-from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel as PydanticBaseModel
+from sqlalchemy import ColumnElement, inspect
 from sqlalchemy.orm import Session
 
-from fastwings.error_code import ServerErrorCode
-from fastwings.model import Base
+from fastwings.crud.sql_query_builder import QueryBuilder, SoftDeletableQueryBuilder
+from fastwings.model import BaseModel
 
-ModelType = TypeVar("ModelType", bound=Base)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+ModelType = TypeVar("ModelType", bound=BaseModel)
+CreateSchemaType = TypeVar("CreateSchemaType", bound=PydanticBaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=PydanticBaseModel)
 
 logger = logging.getLogger(__name__)
 
 
-class SQLRepository(Generic[ModelType]):
+class SQLRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Synchronous CRUD repository for SQLAlchemy models.
 
     Provides methods for create, read, update, and delete operations.
 
-    Args:
-        model (Type[ModelType]): SQLAlchemy model class.
+    Attributes:
+        model (type[ModelType]): SQLAlchemy model class managed by the repository.
+        model_id_column (ColumnElement[Any]): Column used for default ordering and identification.
     """
 
     def __init__(self, model: type[ModelType]):
         """Initializes the repository with a SQLAlchemy model class.
 
+        Provides methods for create, read, update, and delete operations.
+
         Args:
-            model (Type[ModelType]): SQLAlchemy model class.
+            model (type[ModelType]): SQLAlchemy model class.
+
+        Raises:
+            TypeError: If the model cannot be inspected or has no primary key.
         """
         self.model = model
+        # Get the ID column properly from the mapper
+        mapper = inspect(self.model)
+        if mapper is None:
+            raise TypeError(f"Could not inspect model {self.model.__name__}")
+
+        pk_columns = list(mapper.primary_key)
+        if len(pk_columns) == 0:
+            raise TypeError(f"Model {self.model.__name__} has no primary key")
+
+        # Use the first primary key column (most models have single PK)
+        self.model_id_column: ColumnElement[Any] = pk_columns[0]
+
+    def query(self) -> QueryBuilder[ModelType]:
+        """Creates a new QueryBuilder instance for this repository's model.
+
+        Returns:
+            QueryBuilder[ModelType]: A new query builder instance.
+
+        Example:
+            users = repo.query() \
+                .add_filters(User.is_active == True) \
+                .order_by(User.created_at.desc()) \
+                .limit(10) \
+                .all(session)
+        """
+        return QueryBuilder(self.model)
 
     def get(self, session: Session, obj_id: Any) -> ModelType | None:
-        """Retrieve an object by ID.
+        """Retrieves an object by its ID.
 
         Args:
             session (Session): SQLAlchemy session.
             obj_id (Any): Object ID to query.
 
         Returns:
-            Optional[ModelType]: Retrieved model instance or None.
-
-        Raises:
-            BusinessException: On database error.
+            ModelType | None: Retrieved model instance or None if not found.
         """
-        try:
-            data = session.query(self.model).filter(self.model.id == obj_id, self.model.is_deleted.is_(False)).first()
-        except SQLAlchemyError as ex:
-            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
+        stmt = self.query().add_filters(self.model.id == obj_id).limit(1).as_select()
+        result = session.execute(stmt)
+        data: ModelType | None = result.scalars().first()
+
         logger.debug(f"Get id: {obj_id} from table {self.model.__tablename__.upper()} done")
         return data
 
-    def create(self, session: Session, *, obj_in: CreateSchemaType) -> ModelType:
-        """Create a new object in the database.
+    def get_by(
+        self,
+        session: Session,
+        *,
+        order_by: Sequence[ColumnElement[Any]] | None = None,
+        **filters: Any
+    ) -> ModelType | None:
+        """Retrieves a single object by filter conditions.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            order_by (Sequence[ColumnElement[Any]] | None, optional): Columns to order by. Defaults to model ID column.
+            **filters: Filter conditions (e.g., email="user@example.com").
+
+        Returns:
+            ModelType | None: Retrieved model instance or None if not found.
+        """
+        stmt = self.query() \
+            .add_filters(**filters) \
+            .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
+            .limit(1) \
+            .as_select()
+        result = session.execute(stmt)
+        data: ModelType | None = result.scalars().first()
+
+        logger.debug(f"Get by {filters} from table {self.model.__tablename__.upper()} done")
+        return data
+
+    def get_multi(
+        self,
+        session: Session,
+        *,
+        offset: int = 0,
+        limit: int = 100,
+        order_by: Sequence[ColumnElement[Any]] | None = None,
+        **filters: Any
+    ) -> Sequence[ModelType]:
+        """Retrieves multiple objects with optional pagination and filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            offset (int, optional): Number of records to skip. Defaults to 0.
+            limit (int, optional): Maximum number of records to return. Defaults to 100.
+            order_by (Sequence[ColumnElement[Any]] | None, optional): Columns to order by. Defaults to model ID column.
+            **filters: Filter conditions.
+
+        Returns:
+            Sequence[ModelType]: List of model instances.
+        """
+        stmt = self.query() \
+            .add_filters(**filters) \
+            .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
+            .offset(offset) \
+            .limit(limit) \
+            .as_select()
+        result = session.execute(stmt)
+        data: Sequence[ModelType] = result.scalars().all()
+
+        logger.debug(
+            f"Get multi (offset={offset}, limit={limit}) from table {self.model.__tablename__.upper()} done"
+        )
+        return data
+
+    def get_all(
+        self,
+        session: Session,
+        *,
+        order_by: Sequence[ColumnElement[Any]] | None = None,
+        **filters: Any
+    ) -> Sequence[ModelType]:
+        """Retrieves all objects matching the given filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            order_by (Sequence[ColumnElement[Any]] | None, optional): Columns to order by. Defaults to model ID column.
+            **filters: Filter conditions.
+
+        Returns:
+            Sequence[ModelType]: List of all matching model instances.
+        """
+        stmt = self.query() \
+            .add_filters(**filters) \
+            .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
+            .as_select()
+        result = session.execute(stmt)
+        data: Sequence[ModelType] = result.scalars().all()
+
+        logger.debug(f"Get all from table {self.model.__tablename__.upper()} done")
+        return data
+
+    def count(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> int:
+        """Counts objects matching the given filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            **filters: Filter conditions.
+
+        Returns:
+            int: Number of matching records.
+        """
+        stmt = self.query().add_filters(**filters).as_count()
+        result = session.execute(stmt)
+        count: int = cast(int, result.scalar_one())
+
+        logger.debug(f"Count from table {self.model.__tablename__.upper()}: {count}")
+        return count
+
+    def exists(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> bool:
+        """Checks if any object exists matching the given filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            **filters: Filter conditions.
+
+        Returns:
+            bool: True if at least one matching record exists, False otherwise.
+        """
+        stmt = self.query().add_filters(**filters).as_exists()
+        result = session.execute(stmt)
+        exists: bool = cast(bool, result.scalar_one())
+
+        logger.debug(f"Exists check in table {self.model.__tablename__.upper()}: {exists}")
+        return exists
+
+    def create(
+        self,
+        session: Session,
+        *,
+        obj_in: CreateSchemaType,
+    ) -> ModelType:
+        """Creates a new object in the database.
+
+        Uses the model's from_data method for proper validation.
 
         Args:
             session (Session): SQLAlchemy session.
@@ -70,74 +239,443 @@ class SQLRepository(Generic[ModelType]):
 
         Returns:
             ModelType: Created model instance.
-
-        Raises:
-            BusinessException: On database error.
         """
-        try:
-            obj_in_data = obj_in.model_dump(exclude_unset=True)
-            db_obj = self.model(**obj_in_data)  # type: ignore
-            session.add(db_obj)
-            session.commit()
-            session.refresh(db_obj)
-        except SQLAlchemyError as ex:
-            session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
-        logger.debug(f"Insert {db_obj} to table {self.model.__tablename__.upper()} done")
+        db_obj: ModelType = self.model.from_data(obj_in)
+        session.add(db_obj)
+
+        session.flush([db_obj])
+        session.refresh(db_obj)
+
+        logger.debug(f"Insert to table {self.model.__tablename__.upper()} done")
         return db_obj
+
+    def create_multi(
+        self,
+        session: Session,
+        *,
+        objs_in: list[CreateSchemaType],
+    ) -> list[ModelType]:
+        """Creates multiple objects in a single transaction.
+
+         Uses the model's from_data method for proper validation.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            objs_in (list[CreateSchemaType]): List of creation schemas.
+
+        Returns:
+            list[ModelType]: List of created model instances.
+        """
+        db_objs: list[ModelType] = [self.model.from_data(obj_in) for obj_in in objs_in]
+        session.add_all(db_objs)
+        session.flush(db_objs)
+
+        logger.debug(f"Bulk insert {len(db_objs)} records to table {self.model.__tablename__.upper()} done")
+        return db_objs
 
     def update(
         self,
         session: Session,
         *,
-        obj_id: uuid.UUID,
+        obj_id: Any,
         obj_in: UpdateSchemaType | dict[str, Any],
-    ) -> UpdateSchemaType | dict[str, Any]:
-        """Update an object in the database.
+    ) -> ModelType:
+        """Updates an object in the database.
+
+        Uses the model's update method for proper validation and field protection.
 
         Args:
             session (Session): SQLAlchemy session.
-            obj_id (uuid.UUID): Object ID to update.
-            obj_in (UpdateSchemaType | Dict[str, Any]): Update data.
+            obj_id (Any): Object ID to update.
+            obj_in (UpdateSchemaType | dict[str, Any]): Update data.
 
         Returns:
-            UpdateSchemaType | Dict[str, Any]: Updated data.
+            ModelType: Updated model instance.
 
         Raises:
-            BusinessException: On database error.
+            ValueError: If the object with the given ID is not found.
         """
-        try:
-            update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
-            session.query(self.model).filter(self.model.id == obj_id).update(update_data)  # type: ignore
-            session.commit()
-        except SQLAlchemyError as ex:
-            session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
-        logger.debug(f"Update {update_data} to table {self.model.__tablename__.upper()} done")
-        return obj_in
+        obj = self.get(session, obj_id)
+        if obj is None:
+            raise ValueError(f"Object with id {obj_id} not found.")
+
+        # Use the model's update method which handles view_only_fields and validation
+        obj.update(obj_in)
+
+        session.flush([obj])
+        session.refresh(obj)
+
+        logger.debug(f"Update in table {self.model.__tablename__.upper()} done")
+        return obj
+
+    def update_multi(
+        self,
+        session: Session,
+        *,
+        values: dict[str, Any],
+        **filters: Any
+    ) -> int:
+        """Updates multiple records matching the filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            values (dict[str, Any]): Values to update.
+            **filters: Filter conditions to select records to update.
+
+        Returns:
+            int: Number of updated records.
+
+        Raises:
+            ValueError: If values is empty.
+        """
+        if not values:
+            raise ValueError("Update values cannot be empty")
+
+        stmt = self.query().add_filters(**filters).as_update(values)
+        result = session.execute(stmt)
+
+        session.flush()
+        updated_count: int = result.rowcount or 0
+
+        logger.debug(f"Bulk update {updated_count} records in table {self.model.__tablename__.upper()} done")
+        return updated_count
 
     def delete(
         self,
         session: Session,
         *,
-        obj_id: uuid.UUID,
+        obj_id: Any,
     ) -> None:
-        """Soft delete an object in the database.
+        """Deletes an object in the database.
 
         Args:
             session (Session): SQLAlchemy session.
-            obj_id (uuid.UUID): Object ID to delete.
+            obj_id (Any): Object ID to delete.
+
+        Raises:
+            ValueError: If the object with the given ID is not found.
+        """
+        obj = self.get(session, obj_id)
+        if obj is None:
+            raise ValueError(f"Object with id {obj_id} not found.")
+
+        session.delete(obj)
+        session.flush()
+
+        logger.debug(f"Delete {obj_id} from table {self.model.__tablename__.upper()} done")
+
+    def delete_multi(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> int:
+        """Deletes multiple records matching the filters.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            **filters: Filter conditions to select records to delete.
 
         Returns:
-            None
-        Raises:
-            BusinessException: On database error.
+            int: Number of deleted records.
         """
-        try:
-            session.query(self.model).filter(self.model.id == obj_id).update({"is_deleted": True})
-            session.commit()
-            session.expire_all()
-        except SQLAlchemyError as ex:
-            session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
-        logger.debug(f"Delete {obj_id} to table {self.model.__tablename__.upper()} done")
+        stmt = self.query().add_filters(**filters).as_delete()
+        result = session.execute(stmt)
+
+        session.flush()
+        deleted_count: int = result.rowcount or 0
+
+        logger.debug(f"Bulk delete {deleted_count} records from table {self.model.__tablename__.upper()} done")
+        return deleted_count
+
+    def paginate(
+        self,
+        session: Session,
+        *,
+        page: int = 1,
+        per_page: int = 20,
+        order_by: Sequence[ColumnElement[Any]] | None = None,
+        **filters: Any
+    ) -> tuple[Sequence[ModelType], int]:
+        """Paginates results with total count.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            page (int, optional): Page number (1-indexed). Defaults to 1.
+            per_page (int, optional): Number of items per page. Defaults to 20.
+            order_by (Sequence[ColumnElement[Any]] | None, optional): Columns to order by. Defaults to model ID column.
+            **filters: Filter conditions.
+
+        Returns:
+            tuple[Sequence[ModelType], int]: Tuple of (items, total_count).
+        """
+        # Get paginated items
+        items_stmt = self.query() \
+            .add_filters(**filters) \
+            .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
+            .paginate(page, per_page) \
+            .as_select()
+
+        items_result = session.execute(items_stmt)
+        items: Sequence[ModelType] = items_result.scalars().all()
+
+        # Get total count
+        count_stmt = self.query().add_filters(**filters).as_count()
+        count_result = session.execute(count_stmt)
+        total: int = cast(int, count_result.scalar_one())
+
+        logger.debug(
+            f"Paginate (page={page}, per_page={per_page}) from table {self.model.__tablename__.upper()} done"
+        )
+        return items, total
+
+    def upsert(
+        self,
+        session: Session,
+        *,
+        obj_in: CreateSchemaType | UpdateSchemaType,
+        match_fields: list[str],
+    ) -> tuple[ModelType, bool]:
+        """Inserts or updates based on matching fields.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_in (CreateSchemaType | UpdateSchemaType): Data to insert or update.
+            match_fields (list[str]): Fields to match for existing record.
+
+        Returns:
+            tuple[ModelType, bool]: Tuple of (model_instance, was_created).
+
+        Raises:
+            ValueError: If match_fields is empty or contains invalid field names.
+        """
+        if not match_fields:
+            raise ValueError("match_fields cannot be empty")
+
+        obj_data = obj_in.model_dump(exclude_unset=True)
+
+        # Validate that all match_fields exist in the model
+        mapper = inspect(self.model)
+        if mapper is not None:
+            model_columns = set(mapper.columns.keys())
+            invalid_fields = [f for f in match_fields if f not in model_columns]
+            if invalid_fields:
+                raise ValueError(f"Invalid match_fields: {invalid_fields}. Not found in model.")
+
+        # Build filters from match fields
+        filters = {field: obj_data[field] for field in match_fields if field in obj_data}
+
+        if len(filters) != len(match_fields):
+            missing = set(match_fields) - set(filters.keys())
+            raise ValueError(f"match_fields {missing} not found in input data")
+
+        # Try to find existing record
+        existing = self.get_by(session, **filters)
+
+        if existing:
+            # Update existing using model's update method
+            existing.update(obj_in)
+            db_obj = existing
+            was_created = False
+        else:
+            # Create new using model's from_data method
+            db_obj = self.model.from_data(obj_in)
+            session.add(db_obj)
+            was_created = True
+
+        session.flush([db_obj])
+        session.refresh(db_obj)
+
+        action = "Created" if was_created else "Updated"
+        logger.debug(f"{action} in table {self.model.__tablename__.upper()} done")
+        return db_obj, was_created
+
+
+class SoftDeletableRepository(SQLRepository[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """CRUD repository supporting soft deletion.
+
+    Provides utilities for querying and soft-deleting data on BaseModel with is_deleted field.
+    """
+
+    def __init__(self, model: type[ModelType]):
+        """Initializes the repository and validates soft-delete support.
+
+        Args:
+            model (type[ModelType]): SQLAlchemy model class.
+
+        Raises:
+            TypeError: If the model doesn't support soft deletion.
+        """
+        super().__init__(model)
+
+        # Validate that the model has soft_delete method
+        if not hasattr(self.model, "soft_delete"):
+            raise TypeError(
+                f"Model {self.model.__name__} does not have a soft_delete method. "
+                "Ensure it inherits from SoftDeletableDbModel."
+            )
+
+    def query(self) -> SoftDeletableQueryBuilder[ModelType]:
+        """Creates a new SoftDeletableQueryBuilder instance for this repository's model.
+
+        Returns:
+            SoftDeletableQueryBuilder[ModelType]: A new query builder instance supporting soft deletion.
+        """
+        return SoftDeletableQueryBuilder(self.model)
+
+    def delete(
+        self,
+        session: Session,
+        *,
+        obj_id: Any,
+    ) -> None:
+        """Marks an object as deleted in the database (soft delete).
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_id (Any): Object ID to delete.
+
+        Raises:
+            ValueError: If the object with the given ID is not found.
+        """
+        obj = self.get(session, obj_id)
+        if obj is None:
+            raise ValueError(f"Object with id {obj_id} not found.")
+
+        obj.soft_delete()
+        session.flush([obj])
+
+        logger.debug(f"Soft delete {obj_id} from table {self.model.__tablename__.upper()} done")
+
+    def delete_multi(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> int:
+        """Soft-deletes multiple records matching the filters using bulk update.
+
+        This is more efficient than fetching and updating each record individually.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            **filters: Filter conditions to select records to delete.
+
+        Returns:
+            int: Number of soft-deleted records.
+        """
+        # Use bulk update to set is_deleted = True
+        stmt = self.query().add_filters(**filters).as_update({"is_deleted": True})
+        result = session.execute(stmt)
+
+        session.flush()
+        deleted_count: int = result.rowcount or 0
+
+        logger.debug(f"Bulk soft delete {deleted_count} records from table {self.model.__tablename__.upper()} done")
+        return deleted_count
+
+    def restore(
+        self,
+        session: Session,
+        *,
+        obj_id: Any,
+    ) -> ModelType:
+        """Restores a soft-deleted object.
+
+        Args:
+            session (Session): SQLAlchemy session.
+            obj_id (Any): Object ID to restore.
+
+        Returns:
+            ModelType: The restored model instance.
+
+        Raises:
+            ValueError: If the object with the given ID is not found.
+        """
+        # Query including deleted records
+        stmt = self.query().include_deleted().add_filters(self.model.id == obj_id).limit(1).as_select()
+        result = session.execute(stmt)
+        obj: ModelType | None = result.scalars().first()
+
+        if obj is None:
+            raise ValueError(f"Object with id {obj_id} not found.")
+
+        obj.is_deleted = False
+        session.flush([obj])
+        session.refresh(obj)
+
+        logger.debug(f"Restore {obj_id} in table {self.model.__tablename__.upper()} done")
+        return obj
+
+    def restore_multi(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> int:
+        """Restores multiple soft-deleted records matching the filters.
+
+        Args:
+            session (Session): SQLAlchemy async session.
+            **filters: Filter conditions to select records to restore.
+
+        Returns:
+            int: Number of restored records.
+        """
+        # Build query that includes deleted records
+        stmt = self.query().only_deleted().add_filters(**filters).as_update({"is_deleted": False})
+        result = session.execute(stmt)
+
+        session.flush()
+        restored_count: int = result.rowcount or 0
+
+        logger.debug(f"Bulk restore {restored_count} records in table {self.model.__tablename__.upper()} done")
+        return restored_count
+
+    def hard_delete(
+        self,
+        session: Session,
+        *,
+        obj_id: Any,
+    ) -> None:
+        """Permanently deletes an object from the database (bypasses soft delete).
+
+        Args:
+            session (Session): SQLAlchemy async session.
+            obj_id (Any): Object ID to permanently delete.
+
+        Raises:
+            ValueError: If the object with the given ID is not found.
+        """
+        # Query including deleted records
+        stmt = self.query().include_deleted().add_filters(self.model.id == obj_id).limit(1).as_select()
+        result = session.execute(stmt)
+        obj: ModelType | None = result.scalars().first()
+
+        if obj is None:
+            raise ValueError(f"Object with id {obj_id} not found.")
+
+        session.delete(obj)
+        session.flush()
+
+        logger.debug(f"Hard delete {obj_id} from table {self.model.__tablename__.upper()} done")
+
+    def hard_delete_multi(
+        self,
+        session: Session,
+        **filters: Any
+    ) -> int:
+        """Permanently deletes multiple records from the database (bypasses soft delete).
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            **filters: Filter conditions to select records to permanently delete.
+
+        Returns:
+            int: Number of permanently deleted records.
+        """
+        stmt = self.query().include_deleted().add_filters(**filters).as_delete()
+        result = session.execute(stmt)
+
+        session.flush()
+        deleted_count: int = result.rowcount or 0
+
+        logger.debug(f"Hard delete {deleted_count} records from table {self.model.__tablename__.upper()} done")
+        return deleted_count
