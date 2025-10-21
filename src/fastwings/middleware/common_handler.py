@@ -7,11 +7,16 @@ Functions:
     timer_middleware: Middleware to measure and add request processing time to response headers.
 """
 
-import time
-from collections.abc import Callable, Coroutine
-from typing import Any
+from __future__ import annotations
 
-from fastapi import Request, Response
+import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+    from typing import Any
+
+    from fastapi import Request, Response
 
 
 async def timer_middleware(request: Request, call_next: Callable[[Request], Coroutine[Any, Any, Response]]) -> Response:

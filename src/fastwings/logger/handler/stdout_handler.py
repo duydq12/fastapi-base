@@ -3,12 +3,18 @@
 Stores configuration for stdout-based logging, including format, filtering, and options.
 """
 
+from __future__ import annotations
+
 import logging
 import sys
-from collections.abc import Callable, Iterator
-from typing import TextIO
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from ..formatter import DEFAULT_FORMATTER
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from typing import TextIO
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 
@@ -18,6 +24,7 @@ class StdoutHandler:
 
     Supports configuration for log format, filtering, and Loguru options.
     """
+
     def __init__(
         self,
         sink: TextIO = sys.stdout,

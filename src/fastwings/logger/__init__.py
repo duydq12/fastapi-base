@@ -8,11 +8,16 @@ Features:
 - get_uvicorn_configure_logger for Uvicorn integration.
 """
 
+from __future__ import annotations
+
 import logging
-from types import FrameType
-from typing import Any
+from typing import TYPE_CHECKING
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from types import FrameType
+    from typing import Any
 
 
 class InterceptHandler(logging.Handler):

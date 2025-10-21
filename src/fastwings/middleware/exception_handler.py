@@ -6,11 +6,17 @@ Functions:
     business_exception_handler: Handles BusinessException errors and returns structured JSON response.
 """
 
-from fastapi import Request
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi.responses import JSONResponse
 from loguru import logger
 
 from fastwings.exception import BusinessException
+
+if TYPE_CHECKING:
+    from fastapi import Request
 
 
 async def business_exception_handler(_: Request, exc: BusinessException) -> JSONResponse:

@@ -7,16 +7,23 @@ Classes:
     SoftDeletableAsyncRepository: Async repository supporting soft deletion.
 """
 
+from __future__ import annotations
+
 import logging
-from collections.abc import Sequence
-from typing import Any, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from pydantic import BaseModel as PydanticBaseModel
-from sqlalchemy import ColumnElement, inspect
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastwings.crud.sql_query_builder import QueryBuilder, SoftDeletableQueryBuilder
 from fastwings.model import BaseModel
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any
+
+    from sqlalchemy import ColumnElement
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=PydanticBaseModel)

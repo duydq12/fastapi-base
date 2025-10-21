@@ -3,21 +3,27 @@
 Provides session manager and utilities for database health checks.
 """
 
-import contextlib
-import logging
-from collections.abc import Iterator
-from typing import Any
+from __future__ import annotations
 
-from sqlalchemy import Connection, Engine, create_engine
+import contextlib
+from typing import TYPE_CHECKING
+
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from fastwings.config import settings
 from fastwings.error_code import ServerErrorCode
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from typing import Any
+
+    from sqlalchemy import Connection, Engine
+    from sqlalchemy.orm import Session
+
 
 
 class SessionManager:

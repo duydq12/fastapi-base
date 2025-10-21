@@ -3,19 +3,26 @@
 Provides async session manager and utilities for database health checks.
 """
 
+from __future__ import annotations
+
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator
 from socket import gaierror
-from typing import Any
+from typing import TYPE_CHECKING
 
 from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
 
 from fastwings.config import settings
 from fastwings.error_code import ServerErrorCode
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from typing import Any
+
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html

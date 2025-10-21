@@ -8,12 +8,19 @@ Functions:
     basic_auth: FastAPI dependency to authenticate user using HTTP Basic credentials.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import Depends
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.security import HTTPBasic
 from passlib.context import CryptContext
 
 from fastwings.config import settings
 from fastwings.error_code import AuthErrorCode
+
+if TYPE_CHECKING:
+    from fastapi.security import HTTPBasicCredentials
 
 basic_credential = HTTPBasic()
 

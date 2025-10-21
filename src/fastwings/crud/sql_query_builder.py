@@ -9,16 +9,17 @@ Classes:
     SoftDeletableQueryBuilder: Extends QueryBuilder to filter out soft-deleted records.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from sqlalchemy import Boolean, Column, Delete, Select, Update, delete, func, inspect, select, update
 from sqlalchemy.sql.expression import ColumnElement
-from sqlalchemy.sql.selectable import NamedFromClause
 
 from fastwings.model import BaseModel
 
 if TYPE_CHECKING:
-    from sqlalchemy.sql.selectable import ScalarSelect
+    from sqlalchemy.sql.selectable import NamedFromClause, ScalarSelect
     from typing_extensions import Self
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
@@ -66,7 +67,7 @@ class QueryBuilder(Generic[ModelType]):
         self._distinct: bool = False
         self._distinct_on: list[ColumnElement[Any]] = []
 
-    def select_columns(self, *columns: ColumnElement[Any]) -> "Self":
+    def select_columns(self, *columns: ColumnElement[Any]) -> Self:
         """Specify which columns to select instead of the entire model.
 
         Args:
@@ -78,7 +79,7 @@ class QueryBuilder(Generic[ModelType]):
         self._columns = list(columns)
         return self
 
-    def set_load_options(self, *options: Any) -> "Self":
+    def set_load_options(self, *options: Any) -> Self:
         """Sets relationship loading options, replacing any existing ones.
 
         Args:
@@ -90,7 +91,7 @@ class QueryBuilder(Generic[ModelType]):
         self._load_options = list(options)
         return self
 
-    def add_load_options(self, *options: Any) -> "Self":
+    def add_load_options(self, *options: Any) -> Self:
         """Adds relationship loading options to the existing set.
 
         Args:
@@ -102,7 +103,7 @@ class QueryBuilder(Generic[ModelType]):
         self._load_options.extend(options)
         return self
 
-    def set_filters(self, *filters: Any, **filter_by: Any) -> "Self":
+    def set_filters(self, *filters: Any, **filter_by: Any) -> Self:
         """Sets filters, replacing any existing ones.
 
         Args:
@@ -116,7 +117,7 @@ class QueryBuilder(Generic[ModelType]):
         self._filter_by = filter_by
         return self
 
-    def add_filters(self, *filters: Any, **filter_by: Any) -> "Self":
+    def add_filters(self, *filters: Any, **filter_by: Any) -> Self:
         """Adds filters to the existing set.
 
         Args:
@@ -130,7 +131,7 @@ class QueryBuilder(Generic[ModelType]):
         self._filter_by.update(filter_by)
         return self
 
-    def join(self, *args: Any, **kwargs: Any) -> "Self":
+    def join(self, *args: Any, **kwargs: Any) -> Self:
         """Adds a JOIN clause to the query.
 
         Args:
@@ -143,7 +144,7 @@ class QueryBuilder(Generic[ModelType]):
         self._joins.append((args, kwargs))
         return self
 
-    def outerjoin(self, *args: Any, **kwargs: Any) -> "Self":
+    def outerjoin(self, *args: Any, **kwargs: Any) -> Self:
         """Adds an OUTER JOIN (LEFT JOIN) clause to the query.
 
         Args:
@@ -157,7 +158,7 @@ class QueryBuilder(Generic[ModelType]):
         self._joins.append((args, kwargs))
         return self
 
-    def where(self, *conditions: Any) -> "Self":
+    def where(self, *conditions: Any) -> Self:
         """Alias for add_filters() for more SQL-like syntax.
 
         Args:
@@ -168,7 +169,7 @@ class QueryBuilder(Generic[ModelType]):
         """
         return self.add_filters(*conditions)
 
-    def filter(self, *conditions: Any, **filter_by: Any) -> "Self":
+    def filter(self, *conditions: Any, **filter_by: Any) -> Self:
         """Alias for add_filters() for compatibility with SQLAlchemy Query API.
 
         Args:
@@ -180,7 +181,7 @@ class QueryBuilder(Generic[ModelType]):
         """
         return self.add_filters(*conditions, **filter_by)
 
-    def order_by(self, *clauses: ColumnElement[Any]) -> "Self":
+    def order_by(self, *clauses: ColumnElement[Any]) -> Self:
         """Sets the ORDER BY clause, accepting multiple sorting criteria.
 
         Args:
@@ -192,7 +193,7 @@ class QueryBuilder(Generic[ModelType]):
         self._order_by = list(clauses)
         return self
 
-    def group_by(self, *clauses: ColumnElement[Any]) -> "Self":
+    def group_by(self, *clauses: ColumnElement[Any]) -> Self:
         """Sets the GROUP BY clause.
 
         Args:
@@ -204,7 +205,7 @@ class QueryBuilder(Generic[ModelType]):
         self._group_by = list(clauses)
         return self
 
-    def having(self, *conditions: Any) -> "Self":
+    def having(self, *conditions: Any) -> Self:
         """Adds HAVING conditions (used with GROUP BY).
 
         Args:
@@ -216,7 +217,7 @@ class QueryBuilder(Generic[ModelType]):
         self._having.extend(conditions)
         return self
 
-    def limit(self, limit: int) -> "Self":
+    def limit(self, limit: int) -> Self:
         """Sets the LIMIT clause.
 
         Args:
@@ -233,7 +234,7 @@ class QueryBuilder(Generic[ModelType]):
         self._limit = limit
         return self
 
-    def offset(self, offset: int) -> "Self":
+    def offset(self, offset: int) -> Self:
         """Sets the OFFSET clause.
 
         Args:
@@ -250,7 +251,7 @@ class QueryBuilder(Generic[ModelType]):
         self._offset = offset
         return self
 
-    def paginate(self, page: int, per_page: int) -> "Self":
+    def paginate(self, page: int, per_page: int) -> Self:
         """Convenience method for pagination.
 
         Args:
@@ -271,7 +272,7 @@ class QueryBuilder(Generic[ModelType]):
         self._offset = (page - 1) * per_page
         return self
 
-    def distinct(self, is_distinct: bool = True) -> "Self":
+    def distinct(self, is_distinct: bool = True) -> Self:
         """Applies a DISTINCT clause to the select query.
 
         Args:
@@ -283,7 +284,7 @@ class QueryBuilder(Generic[ModelType]):
         self._distinct = is_distinct
         return self
 
-    def distinct_on(self, *columns: ColumnElement[Any]) -> "Self":
+    def distinct_on(self, *columns: ColumnElement[Any]) -> Self:
         """Applies DISTINCT ON clause (PostgreSQL specific).
 
         Args:
@@ -472,7 +473,7 @@ class QueryBuilder(Generic[ModelType]):
 
         return select(subquery.exists())
 
-    def as_scalar_subquery(self) -> "ScalarSelect[Any]":
+    def as_scalar_subquery(self) -> ScalarSelect[Any]:
         """Converts the current SELECT query into a scalar subquery.
 
         Useful for correlated subqueries in SELECT clauses or WHERE conditions.
@@ -496,7 +497,7 @@ class QueryBuilder(Generic[ModelType]):
             return stmt.subquery(name)
         return stmt.subquery()
 
-    def clone(self) -> "Self":
+    def clone(self) -> Self:
         """Creates a copy of the current QueryBuilder instance.
 
         Note: This performs a shallow copy of list attributes, which is sufficient
@@ -527,7 +528,7 @@ class QueryBuilder(Generic[ModelType]):
 
         return new_builder
 
-    def reset(self) -> "Self":
+    def reset(self) -> Self:
         """Resets all query parameters to their initial state.
 
         Returns:
@@ -590,7 +591,7 @@ class SoftDeletableQueryBuilder(QueryBuilder[ModelType]):
 
         self._filter_soft_deleted = True
 
-    def include_deleted(self, include: bool = True) -> "Self":
+    def include_deleted(self, include: bool = True) -> Self:
         """Controls whether soft-deleted records should be included in queries.
 
         Args:
@@ -602,7 +603,7 @@ class SoftDeletableQueryBuilder(QueryBuilder[ModelType]):
         self._filter_soft_deleted = not include
         return self
 
-    def only_deleted(self) -> "Self":
+    def only_deleted(self) -> Self:
         """Filters to return ONLY soft-deleted records.
 
         Returns:
@@ -635,7 +636,7 @@ class SoftDeletableQueryBuilder(QueryBuilder[ModelType]):
 
         return stmt
 
-    def clone(self) -> "Self":
+    def clone(self) -> Self:
         """Creates a copy of the current SoftDeletableQueryBuilder instance.
 
         Returns:
@@ -646,7 +647,7 @@ class SoftDeletableQueryBuilder(QueryBuilder[ModelType]):
         new_builder._filter_soft_deleted = self._filter_soft_deleted
         return new_builder
 
-    def reset(self) -> "Self":
+    def reset(self) -> Self:
         """Resets all query parameters to their initial state, including soft-delete filter.
 
         Returns:

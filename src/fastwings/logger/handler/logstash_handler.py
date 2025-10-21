@@ -3,6 +3,8 @@
 Sends structured log records to a Logstash server for centralized logging and analysis.
 """
 
+from __future__ import annotations
+
 import logging
 import socket
 from collections.abc import Callable

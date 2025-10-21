@@ -3,10 +3,17 @@
 Stores configuration for file-based logging, including format, rotation, retention, and filtering options.
 """
 
+from __future__ import annotations
+
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from ..formatter import DEFAULT_FORMATTER
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 
 FilterFunction = Callable[[logging.LogRecord], bool]
 

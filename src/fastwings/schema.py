@@ -10,6 +10,8 @@ Functions:
     ignore_numpy_fields: Creates a new Pydantic model with NumPy fields excluded.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, TypeVar
 

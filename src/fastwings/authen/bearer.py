@@ -8,16 +8,23 @@ Functions:
     bearer_auth: FastAPI dependency to decode JWT from Authorization header.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING
 
 from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from jose import jwt
 from pydantic import ValidationError
 
 from fastwings.config import settings
 from fastwings.error_code import AuthErrorCode
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from fastapi.security import HTTPAuthorizationCredentials
 
 reusable_oauth2 = HTTPBearer(scheme_name="Authorization")
 

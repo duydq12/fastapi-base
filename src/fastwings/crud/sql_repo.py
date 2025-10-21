@@ -7,16 +7,24 @@ Classes:
     SoftDeletableRepository: CRUD repository supporting soft deletion for SQLAlchemy models.
 """
 
+from __future__ import annotations
+
 import logging
-from collections.abc import Sequence
-from typing import Any, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from pydantic import BaseModel as PydanticBaseModel
-from sqlalchemy import ColumnElement, inspect
-from sqlalchemy.orm import Session
+from sqlalchemy import inspect
 
 from fastwings.crud.sql_query_builder import QueryBuilder, SoftDeletableQueryBuilder
 from fastwings.model import BaseModel
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any
+
+    from sqlalchemy import ColumnElement
+    from sqlalchemy.orm import Session
+
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=PydanticBaseModel)

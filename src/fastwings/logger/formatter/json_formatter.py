@@ -7,10 +7,15 @@ Usage:
     Attach JSONFormatter to a logging handler to output logs in structured JSON format.
 """
 
+from __future__ import annotations
+
 import datetime as dt
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",

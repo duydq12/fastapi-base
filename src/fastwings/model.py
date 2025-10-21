@@ -10,11 +10,13 @@ Classes:
     SoftDeletableDbModel: Mixin for soft delete support.
     BaseModel: Combines audit and soft delete mixins with DbModel.
 """
+
+from __future__ import annotations
+
 import re
 import uuid
-from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING
 
 import inflect
 from pydantic import BaseModel as PydanticBaseModel
@@ -29,6 +31,9 @@ from sqlmodel import Field, SQLModel
 from fastwings.error_code import ServerErrorCode
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any, ClassVar
+
     from sqlalchemy.engine import Connection
     from sqlalchemy.sql.schema import Column
     from typing_extensions import Self
@@ -79,7 +84,7 @@ class IDbModel:
 
 
 @event.listens_for(IDbModel, 'before_insert', propagate=True)
-def receive_before_insert(mapper: Mapper[Any], connection: "Connection", target: IDbModel) -> None:
+def receive_before_insert(mapper: Mapper[Any], connection: Connection, target: IDbModel) -> None:
     """SQLAlchemy event listener for before_insert.
 
     Args:
@@ -92,7 +97,7 @@ def receive_before_insert(mapper: Mapper[Any], connection: "Connection", target:
 
 
 @event.listens_for(IDbModel, 'before_update', propagate=True)
-def receive_before_update(mapper: Mapper[Any], connection: "Connection", target: IDbModel) -> None:
+def receive_before_update(mapper: Mapper[Any], connection: Connection, target: IDbModel) -> None:
     """SQLAlchemy event listener for before_update.
 
     Args:
@@ -105,7 +110,7 @@ def receive_before_update(mapper: Mapper[Any], connection: "Connection", target:
 
 
 @event.listens_for(IDbModel, 'before_delete', propagate=True)
-def receive_before_delete(mapper: Mapper[Any], connection: "Connection", target: IDbModel) -> None:
+def receive_before_delete(mapper: Mapper[Any], connection: Connection, target: IDbModel) -> None:
     """SQLAlchemy event listener for before_delete.
 
     Args:
@@ -125,7 +130,7 @@ def generate_unique_uuid() -> uuid.UUID:
     return uuid.uuid4()
 
 
-def _validate_column_data(column: "Column[Any]", value: Any) -> None:
+def _validate_column_data(column: Column[Any], value: Any) -> None:
     """Validates data for a specific column based on its type and constraints.
 
     Args:
@@ -200,7 +205,7 @@ class DbModel(SQLModel, IDbModel):
         """
         return f"<{self.__class__.__name__}(id={self.id})>"
 
-    def update(self, data: dict[str, Any] | PydanticBaseModel) -> "Self":
+    def update(self, data: dict[str, Any] | PydanticBaseModel) -> Self:
         """Updates the model instance with data from a dictionary or Pydantic model.
 
         Respects `view_only_fields` and `not_update_fields` to prevent updates to protected fields.
@@ -230,7 +235,7 @@ class DbModel(SQLModel, IDbModel):
         return self
 
     @classmethod
-    def from_data(cls: type["Self"], data: dict[str, Any] | PydanticBaseModel) -> "Self":
+    def from_data(cls: type[Self], data: dict[str, Any] | PydanticBaseModel) -> Self:
         """Creates a new model instance from a dictionary or Pydantic model.
 
         Respects `view_only_fields` to prevent setting protected fields.

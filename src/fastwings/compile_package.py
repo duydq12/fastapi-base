@@ -12,10 +12,12 @@ Functions:
     get_args: Parses command-line arguments for package compilation.
 """
 
+import argparse
 import glob
 import os
 import shutil
 import sys
+from pathlib import Path
 
 import isort
 from Cython.Build import cythonize
@@ -130,30 +132,62 @@ def clean_build(package: str) -> None:
     Args:
         package: Package directory path.
     """
-    os.remove(f"{package}.py")
-    shutil.rmtree("build")
-    shutil.rmtree("build_cythonize")
+    # Safely remove generated files and directories
+    Path(f"{package}.py").unlink(missing_ok=True)
+
+    # Remove the generated C file inside the package directory
+    c_files = glob.glob(f"{package}/*.c")
+    for c_file in c_files:
+        Path(c_file).unlink(missing_ok=True)
+
+    if Path("build").is_dir():
+        shutil.rmtree("build")
+    if Path("build_cythonize").is_dir():
+        shutil.rmtree("build_cythonize")
 
 
-def get_args() -> str:
-    """Parses command-line arguments for package compilation.
+def parse_and_validate_args() -> str:
+    """Parses and validates command-line arguments for package compilation.
 
     Returns:
-        str: Package directory path.
+        str: A safe, validated package directory path.
+
+    Raises:
+        SystemExit: If the path is invalid or outside the project directory.
     """
-    # Compile project using Cython
-    if "--package" not in sys.argv:  # package path
-        sys.exit("Compile Error: Required --package argument")
+    # Use argparse for robust argument parsing
+    parser = argparse.ArgumentParser(description="Compile a Python package using Cython.")
+    parser.add_argument("--package", required=True, help="The path to the package directory to compile.")
 
-    index = sys.argv.index("--package")
-    sys.argv.pop(index)  # Removes the '--package'
-    package = sys.argv.pop(index)  # Returns the element after the '--package'
+    # Filter out setuptools/distutils arguments before parsing
+    known_args, _ = parser.parse_known_args()
+    package_path_str: str = str(known_args.package)
 
-    return package
+    # --- SECURITY VALIDATION ---
+    try:
+        project_root = Path.cwd().resolve()
+        package_path = Path(package_path_str).resolve()
+
+        # 1. Check if the resolved path is within the project directory
+        if project_root not in package_path.parents and project_root != package_path:
+            raise ValueError("Path is outside the current project directory.")
+
+        # 2. Check if the path exists and is a directory
+        if not package_path.is_dir():
+            raise ValueError("Path is not a valid directory.")
+
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Security Error: Invalid package path provided. {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Return the original, relative path string if it's safe
+    return package_path_str
 
 
 if __name__ == "__main__":
-    package_ = get_args()
+    package_ = parse_and_validate_args()
+    print(f"Compiling package: {package_}")
     combine_files(package_)
     compile_code(package_)
     clean_build(package_)
+    print("Compilation complete and build artifacts cleaned up.")

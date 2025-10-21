@@ -3,6 +3,8 @@
 Posts log records to a Google Chat room using the configured webhook URL.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable
 from json import dumps

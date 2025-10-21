@@ -2,7 +2,7 @@
 
 Verifies that only one instance is created and shared.
 """
-from fastwings.pattern import Singleton
+from fastwings.pattern.singleton import Singleton
 
 
 def test_singleton_pattern():

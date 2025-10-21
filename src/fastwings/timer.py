@@ -6,6 +6,8 @@ Functions:
     timeit: Decorator to measure and log execution time of a function.
 """
 
+from __future__ import annotations
+
 import time
 from collections.abc import Callable
 from functools import wraps
