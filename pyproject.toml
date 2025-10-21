@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 # ======================================================================
 [project]
 name = "fastwings"
-version = "0.0.18"
+version = "0.0.19"
 description = "Provides several modules that help improve web application development using FastAPI"
 readme = "README.md"
 keywords = ["fastwings", "fastapi_base", "fastapi_utils", "fastapi_helper", "fastapi"]
