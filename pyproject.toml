@@ -2,7 +2,7 @@
 # Build System Configuration
 # ======================================================================
 [build-system]
-requires = [ "setuptools>=61.0" ]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 # ======================================================================
@@ -13,14 +13,14 @@ name = "fastwings"
 version = "0.0.17"
 description = "Provides several modules that help improve web application development using FastAPI"
 readme = "README.md"
-keywords = [ "fastwings", "fastapi_base", "fastapi_utils", "fastapi_helper", "fastapi"]
+keywords = ["fastwings", "fastapi_base", "fastapi_utils", "fastapi_helper", "fastapi"]
 authors = [
     { name = "Dao Quang Duy", email = "duydaoquang12@gmail.com" },
 ]
 maintainers = [
     { name = "Rabiloo Developers", email = "oss@rabiloo.com" },
 ]
-license = {text = "The MIT License"}
+license = { text = "The MIT License" }
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,9 +31,10 @@ classifiers = [
 
 # Core dependencies (from install_requires)
 dependencies = [
-    "loguru",
-    "pydantic-settings",
-    "inflect",
+    "loguru==0.7.3",
+    "pydantic-settings==2.11.0",
+    "inflect==7.5.0",
+    "sqlmodel==0.0.27"
 ]
 
 # Optional dependencies (from extras_require)
@@ -48,54 +49,54 @@ dev = [
     "pytest-mock",
     "pytest-asyncio",
     "httpx",
-    "numpy",
+    "numpy==2.2.6",
 ]
-logger = [
-    "python-logstash",
-    "requests"
-]
+
 logger-logstash = [
-    "python-logstash"
+    "python-logstash==0.4.8"
 ]
 logger-ggchat = [
-    "requests"
+    "requests==2.32.5"
 ]
-db = [
-    "SQLAlchemy",
-    "tenacity",
-    "psycopg2-binary",
-    "asyncpg",
-    "pymysql",
-    "asyncmy"
+logger = [
+    "fastwings[logger-logstash]",
+    "fastwings[logger-ggchat]"
 ]
+
 db-pg = [
-    "SQLAlchemy",
-    "tenacity",
-    "psycopg2-binary",
+    "SQLAlchemy==2.0.43",
+    "tenacity==9.1.2",
+    "psycopg2-binary==2.9.10",
 ]
 db-asyncpg = [
-    "SQLAlchemy",
-    "tenacity",
-    "psycopg2-binary",
-    "asyncpg",
+    "SQLAlchemy==2.0.43",
+    "tenacity==9.1.2",
+    "psycopg2-binary==2.9.10",
+    "asyncpg==0.30.0",
 ]
 db-my = [
-    "SQLAlchemy",
-    "tenacity",
-    "pymysql"
+    "SQLAlchemy==2.0.43",
+    "tenacity==9.1.2",
+    "PyMySQL==1.1.2"
 ]
 db-asyncmy = [
-    "SQLAlchemy",
-    "asyncmy",
+    "SQLAlchemy==2.0.43",
+    "asyncmy==0.2.10",
+]
+db = [
+    "fastwings[db-pg]",
+    "fastwings[db-asyncpg]",
+    "fastwings[db-my]",
+    "fastwings[db-asyncmy]",
 ]
 fastapi = [
-    "fastapi",
-    "fastapi_health",
-    "passlib",
-    "python-multipart",
+    "fastapi==0.119.0",
+    "fastapi_health==0.4.0",
+    "passlib==1.7.4",
+    "python-multipart==0.0.20",
     "bcrypt==4.3.0",
-    "python-jose",
-    "uvicorn[standard]",
+    "python-jose==3.5.0",
+    "uvicorn[standard]==0.37.0",
 ]
 
 all = [
@@ -266,19 +267,24 @@ show_traceback = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pydantic.*",
-    "decouple.*",
+    # Logging & Monitoring
     "loguru.*",
-    "asyncio.*",
-    "requests.*",
-    "fastapi_health.*",
     "logstash.*",
-    "passlib.*",
-    "jose.*",
+    # Async & Concurrency
+    "asyncio.*",
     "asyncpg.*",
+    # Web Framework & API
+    "fastapi_health.*",
+    "pydantic.*",
+    "sqlmodel.*",
+    "requests.*",
+    # Security & Authentication
+    "jose.*",
+    "passlib.*",
+    # Build & Performance
     "setuptools.*",
+    "Cython.*",
     "isort.*",
-    "Cython.*"
 ]
 ignore_missing_imports = true
 
@@ -299,7 +305,6 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
-
     # Don't complain about abstract methods, they aren't run;
     "@(abc\\.)?abstractmethod"
 ]
