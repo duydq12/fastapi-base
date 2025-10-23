@@ -1,8 +1,15 @@
 # FastAPI Base
 
+[![Testing](https://github.com/duydq12/fastapi-base/actions/workflows/test.yml/badge.svg)](https://github.com/duydq12/fastapi-base/actions/workflows/test.yml)
+[![Code coverage](https://codecov.io/gh/duydq12/fastapi-base/branch/main/graph/badge.svg)](https://app.codecov.io/github/duydq12/fastapi-base)
+[![Latest Version](https://img.shields.io/pypi/v/fastwings.svg)](https://pypi.org/project/fastwings)
+[![Downloads](https://img.shields.io/pypi/dm/fastwings.svg)](https://pypi.org/project/fastwings)
+[![Pypi Status](https://img.shields.io/pypi/status/fastwings.svg)](https://pypi.org/project/fastwings)
+[![Python Versions](https://img.shields.io/pypi/pyversions/fastwings.svg)](https://pypi.org/project/fastwings)
+
 ## About FastAPI Base
 
-[FastAPI Base](https://github.com/rabiloo/fastapi-base) is a library based on [FastAPI](https://github.com/tiangolo/fastapi). It provides several modules that help improve web application development using FastAPI
+[FastAPI Base](https://github.com/duydq12/fastapi-base) is a library based on [FastAPI](https://github.com/tiangolo/fastapi). It provides several modules that help improve web application development using FastAPI
 
 Some module in project
 - Logger module
