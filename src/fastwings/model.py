@@ -28,7 +28,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import expression
 from sqlmodel import Field, SQLModel
 
-from fastwings.error_code import ServerErrorCode
+from fastwings.error.error_code import ServerErrorCode
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

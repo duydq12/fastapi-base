@@ -7,7 +7,7 @@ import time
 import pytest
 
 from fastwings.authen import bearer
-from fastwings.error_code import AuthErrorCode
+from fastwings.error.error_code import AuthErrorCode
 
 
 class TestBearerAuth:

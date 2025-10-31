@@ -36,7 +36,6 @@ class QueryBuilder(Generic[ModelType]):
         _columns (list[ColumnElement]): Columns to select.
         _load_options (list[Any]): Relationship loading options.
         _filters (list[Any]): WHERE conditions.
-        _filter_by (dict[str, Any]): Keyword-based filters.
         _joins (list[tuple[tuple[Any, ...], dict[str, Any]]]): JOIN clauses.
         _order_by (list[ColumnElement]): ORDER BY clauses.
         _group_by (list[ColumnElement]): GROUP BY clauses.
@@ -57,7 +56,6 @@ class QueryBuilder(Generic[ModelType]):
         self._columns: list[ColumnElement[Any]] = []
         self._load_options: list[Any] = []
         self._filters: list[Any] = []
-        self._filter_by: dict[str, Any] = {}
         self._joins: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
         self._order_by: list[ColumnElement[Any]] = []
         self._group_by: list[ColumnElement[Any]] = []
@@ -103,32 +101,28 @@ class QueryBuilder(Generic[ModelType]):
         self._load_options.extend(options)
         return self
 
-    def set_filters(self, *filters: Any, **filter_by: Any) -> Self:
+    def set_filters(self, *filters: Any) -> Self:
         """Sets filters, replacing any existing ones.
 
         Args:
             filters (Any): SQLAlchemy filter expressions.
-            filter_by (Any): Keyword-based filters.
 
         Returns:
             Self: The QueryBuilder instance for chaining.
         """
         self._filters = list(filters)
-        self._filter_by = filter_by
         return self
 
-    def add_filters(self, *filters: Any, **filter_by: Any) -> Self:
+    def add_filters(self, *filters: Any) -> Self:
         """Adds filters to the existing set.
 
         Args:
             filters (Any): SQLAlchemy filter expressions to add.
-            filter_by (Any): Keyword-based filters to add.
 
         Returns:
             Self: The QueryBuilder instance for chaining.
         """
         self._filters.extend(filters)
-        self._filter_by.update(filter_by)
         return self
 
     def join(self, *args: Any, **kwargs: Any) -> Self:
@@ -157,29 +151,6 @@ class QueryBuilder(Generic[ModelType]):
         kwargs['isouter'] = True
         self._joins.append((args, kwargs))
         return self
-
-    def where(self, *conditions: Any) -> Self:
-        """Alias for add_filters() for more SQL-like syntax.
-
-        Args:
-            conditions (Any): SQLAlchemy filter expressions.
-
-        Returns:
-            Self: The QueryBuilder instance for chaining.
-        """
-        return self.add_filters(*conditions)
-
-    def filter(self, *conditions: Any, **filter_by: Any) -> Self:
-        """Alias for add_filters() for compatibility with SQLAlchemy Query API.
-
-        Args:
-            conditions (Any): SQLAlchemy filter expressions.
-            filter_by (Any): Keyword-based filters.
-
-        Returns:
-            Self: The QueryBuilder instance for chaining.
-        """
-        return self.add_filters(*conditions, **filter_by)
 
     def order_by(self, *clauses: ColumnElement[Any]) -> Self:
         """Sets the ORDER BY clause, accepting multiple sorting criteria.
@@ -337,7 +308,7 @@ class QueryBuilder(Generic[ModelType]):
                 stmt = stmt.join(*join_args, **join_kwargs)
 
         # Apply filters
-        stmt = stmt.where(*self._filters).filter_by(**self._filter_by)
+        stmt = stmt.filter(*self._filters)
         return stmt
 
     def as_select(self) -> Select[Any]:
@@ -401,7 +372,7 @@ class QueryBuilder(Generic[ModelType]):
             )
 
         stmt = delete(self.model_class)
-        stmt = stmt.where(*self._filters).filter_by(**self._filter_by)
+        stmt = stmt.filter(*self._filters)
         return stmt
 
     def as_update(self, values: dict[str, Any]) -> Update:
@@ -426,7 +397,7 @@ class QueryBuilder(Generic[ModelType]):
             )
 
         stmt = update(self.model_class).values(values)
-        stmt = stmt.where(*self._filters).filter_by(**self._filter_by)
+        stmt = stmt.filter(*self._filters)
         return stmt
 
     def as_count(self, column: ColumnElement[Any] | None = None) -> Select[Any]:
@@ -514,7 +485,6 @@ class QueryBuilder(Generic[ModelType]):
         new_builder._columns = copy.copy(self._columns)
         new_builder._load_options = copy.copy(self._load_options)
         new_builder._filters = copy.copy(self._filters)
-        new_builder._filter_by = copy.copy(self._filter_by)
         new_builder._joins = copy.copy(self._joins)
         new_builder._order_by = copy.copy(self._order_by)
         new_builder._group_by = copy.copy(self._group_by)
@@ -537,7 +507,6 @@ class QueryBuilder(Generic[ModelType]):
         self._columns.clear()
         self._load_options.clear()
         self._filters.clear()
-        self._filter_by.clear()
         self._joins.clear()
         self._order_by.clear()
         self._group_by.clear()

@@ -16,8 +16,8 @@ from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastwings.crud.sql_query_builder import QueryBuilder, SoftDeletableQueryBuilder
 from fastwings.model import BaseModel
+from fastwings.repository.query_builder import QueryBuilder, SoftDeletableQueryBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -32,7 +32,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=PydanticBaseModel)
 logger = logging.getLogger(__name__)
 
 
-class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+class BaseSQLRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Asynchronous CRUD repository for SQLAlchemy models.
 
     Provides async methods for create, read, update, and delete operations.
@@ -42,7 +42,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         model_id_column (ColumnElement[Any]): Column representing the model's ID.
     """
 
-    def __init__(self, model: type[ModelType]):
+    def __init__(self, session: AsyncSession, model: type[ModelType]):
         """Initializes the repository with a SQLAlchemy model class.
 
         Args:
@@ -51,6 +51,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Raises:
             TypeError: If the model cannot be inspected or has no primary key.
         """
+        self.session = session
         self.model = model
 
         # Get the ID column properly from the mapper
@@ -80,7 +81,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         """
         return QueryBuilder(self.model)
 
-    async def get(self, session: AsyncSession, obj_id: Any) -> ModelType | None:
+    async def get(self, obj_id: Any) -> ModelType | None:
         """Asynchronously retrieve an object by ID.
 
         Args:
@@ -91,7 +92,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             ModelType | None: Retrieved model instance or None.
         """
         stmt = self.query().add_filters(self.model.id == obj_id).limit(1).as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         data: ModelType | None = result.scalars().first()
 
         logger.debug(f"Get id: {obj_id} from table {self.model.__tablename__.upper()} done")
@@ -99,10 +100,9 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def get_by(
         self,
-        session: AsyncSession,
         *,
         order_by: Sequence[ColumnElement[Any]] | None = None,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> ModelType | None:
         """Retrieve a single object by filter conditions.
 
@@ -115,24 +115,23 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             ModelType | None: Retrieved model instance or None.
         """
         stmt = self.query() \
-            .add_filters(**filters) \
+            .add_filters(filters) \
             .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
             .limit(1) \
             .as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         data: ModelType | None = result.scalars().first()
 
         logger.debug(f"Get by {filters} from table {self.model.__tablename__.upper()} done")
         return data
 
-    async def get_multi(
+    async def get_many(
         self,
-        session: AsyncSession,
         *,
         offset: int = 0,
         limit: int = 100,
         order_by: Sequence[ColumnElement[Any]] | None = None,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> Sequence[ModelType]:
         """Retrieve multiple objects with optional pagination and filters.
 
@@ -147,12 +146,12 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             Sequence[ModelType]: List of model instances.
         """
         stmt = self.query() \
-            .add_filters(**filters) \
+            .add_filters(filters) \
             .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
             .offset(offset) \
             .limit(limit) \
             .as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         data: Sequence[ModelType] = result.scalars().all()
 
         logger.debug(
@@ -162,10 +161,9 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def get_all(
         self,
-        session: AsyncSession,
         *,
         order_by: Sequence[ColumnElement[Any]] | None = None,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> Sequence[ModelType]:
         """Retrieve all objects matching the given filters.
 
@@ -178,10 +176,10 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             Sequence[ModelType]: List of all matching model instances.
         """
         stmt = self.query() \
-            .add_filters(**filters) \
+            .add_filters(filters) \
             .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
             .as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         data: Sequence[ModelType] = result.scalars().all()
 
         logger.debug(f"Get all from table {self.model.__tablename__.upper()} done")
@@ -189,8 +187,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def count(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> int:
         """Count objects matching the given filters.
 
@@ -201,8 +198,8 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Returns:
             int: Number of matching records.
         """
-        stmt = self.query().add_filters(**filters).as_count()
-        result = await session.execute(stmt)
+        stmt = self.query().add_filters(filters).as_count()
+        result = await self.session.execute(stmt)
         count: int = cast(int, result.scalar_one())
 
         logger.debug(f"Count from table {self.model.__tablename__.upper()}: {count}")
@@ -210,8 +207,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def exists(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> bool:
         """Check if any object exists matching the given filters.
 
@@ -222,8 +218,8 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Returns:
             bool: True if at least one matching record exists.
         """
-        stmt = self.query().add_filters(**filters).as_exists()
-        result = await session.execute(stmt)
+        stmt = self.query().add_filters(filters).as_exists()
+        result = await self.session.execute(stmt)
         exists: bool = cast(bool, result.scalar_one())
 
         logger.debug(f"Exists check in table {self.model.__tablename__.upper()}: {exists}")
@@ -231,7 +227,6 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def create(
         self,
-        session: AsyncSession,
         *,
         obj_in: CreateSchemaType,
     ) -> ModelType:
@@ -247,20 +242,19 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             ModelType: Created model instance.
         """
         db_obj: ModelType = self.model.from_data(obj_in)
-        session.add(db_obj)
+        self.session.add(db_obj)
 
-        await session.flush([db_obj])
-        await session.refresh(db_obj)
+        await self.session.flush([db_obj])
+        await self.session.refresh(db_obj)
 
         logger.debug(f"Insert to table {self.model.__tablename__.upper()} done")
         return db_obj
 
-    async def create_multi(
+    async def create_many(
         self,
-        session: AsyncSession,
         *,
-        objs_in: list[CreateSchemaType],
-    ) -> list[ModelType]:
+        objs_in: Sequence[CreateSchemaType],
+    ) -> Sequence[ModelType]:
         """Create multiple objects in a single transaction.
 
         Uses the model's from_data method for proper validation.
@@ -273,15 +267,14 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             list[ModelType]: List of created model instances.
         """
         db_objs: list[ModelType] = [self.model.from_data(obj_in) for obj_in in objs_in]
-        session.add_all(db_objs)
-        await session.flush(db_objs)
+        self.session.add_all(db_objs)
+        await self.session.flush(db_objs)
 
         logger.debug(f"Bulk insert {len(db_objs)} records to table {self.model.__tablename__.upper()} done")
         return db_objs
 
     async def update(
         self,
-        session: AsyncSession,
         *,
         obj_id: Any,
         obj_in: UpdateSchemaType | dict[str, Any],
@@ -301,25 +294,24 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Raises:
             ValueError: If the object with the given ID is not found.
         """
-        obj = await self.get(session, obj_id)
+        obj = await self.get(obj_id)
         if obj is None:
             raise ValueError(f"Object with id {obj_id} not found.")
 
         # Use the model's update method which handles view_only_fields and validation
         obj.update(obj_in)
 
-        await session.flush([obj])
-        await session.refresh(obj)
+        await self.session.flush([obj])
+        await self.session.refresh(obj)
 
         logger.debug(f"Update in table {self.model.__tablename__.upper()} done")
         return obj
 
-    async def update_multi(
+    async def update_many(
         self,
-        session: AsyncSession,
         *,
+        filters: Sequence[ColumnElement[bool]],
         values: dict[str, Any],
-        **filters: Any
     ) -> int:
         """Update multiple records matching the filters.
 
@@ -337,10 +329,10 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         if not values:
             raise ValueError("Update values cannot be empty")
 
-        stmt = self.query().add_filters(**filters).as_update(values)
-        result = await session.execute(stmt)
+        stmt = self.query().add_filters(filters).as_update(values)
+        result = await self.session.execute(stmt)
 
-        await session.flush()
+        await self.session.flush()
         updated_count: int = result.rowcount or 0
 
         logger.debug(f"Bulk update {updated_count} records in table {self.model.__tablename__.upper()} done")
@@ -348,7 +340,6 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def delete(
         self,
-        session: AsyncSession,
         *,
         obj_id: Any,
     ) -> None:
@@ -361,19 +352,18 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Raises:
             ValueError: If the object with the given ID is not found.
         """
-        obj = await self.get(session, obj_id)
+        obj = await self.get(obj_id)
         if obj is None:
             raise ValueError(f"Object with id {obj_id} not found.")
 
-        await session.delete(obj)
-        await session.flush()
+        await self.session.delete(obj)
+        await self.session.flush()
 
         logger.debug(f"Delete {obj_id} from table {self.model.__tablename__.upper()} done")
 
-    async def delete_multi(
+    async def delete_many(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> int:
         """Delete multiple records matching the filters.
 
@@ -384,10 +374,10 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         Returns:
             int: Number of deleted records.
         """
-        stmt = self.query().add_filters(**filters).as_delete()
-        result = await session.execute(stmt)
+        stmt = self.query().add_filters(filters).as_delete()
+        result = await self.session.execute(stmt)
 
-        await session.flush()
+        await self.session.flush()
         deleted_count: int = result.rowcount or 0
 
         logger.debug(f"Bulk delete {deleted_count} records from table {self.model.__tablename__.upper()} done")
@@ -395,12 +385,11 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def paginate(
         self,
-        session: AsyncSession,
         *,
         page: int = 1,
         per_page: int = 20,
         order_by: Sequence[ColumnElement[Any]] | None = None,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> tuple[Sequence[ModelType], int]:
         """Paginate results with total count.
 
@@ -416,17 +405,17 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         """
         # Get paginated items
         items_stmt = self.query() \
-            .add_filters(**filters) \
+            .add_filters(filters) \
             .order_by(*(order_by if order_by is not None else [self.model_id_column])) \
             .paginate(page, per_page) \
             .as_select()
 
-        items_result = await session.execute(items_stmt)
+        items_result = await self.session.execute(items_stmt)
         items: Sequence[ModelType] = items_result.scalars().all()
 
         # Get total count
-        count_stmt = self.query().add_filters(**filters).as_count()
-        count_result = await session.execute(count_stmt)
+        count_stmt = self.query().add_filters(filters).as_count()
+        count_result = await self.session.execute(count_stmt)
         total: int = cast(int, count_result.scalar_one())
 
         logger.debug(
@@ -436,7 +425,6 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
 
     async def upsert(
         self,
-        session: AsyncSession,
         *,
         obj_in: CreateSchemaType | UpdateSchemaType,
         match_fields: list[str],
@@ -475,7 +463,7 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
             raise ValueError(f"match_fields {missing} not found in input data")
 
         # Try to find existing record
-        existing = await self.get_by(session, **filters)
+        existing = await self.get_by(**filters)
 
         if existing:
             # Update existing using model's update method
@@ -485,33 +473,34 @@ class SQLAsyncRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType])
         else:
             # Create new using model's from_data method
             db_obj = self.model.from_data(obj_in)
-            session.add(db_obj)
+            self.session.add(db_obj)
             was_created = True
 
-        await session.flush([db_obj])
-        await session.refresh(db_obj)
+        await self.session.flush([db_obj])
+        await self.session.refresh(db_obj)
 
         action = "Created" if was_created else "Updated"
         logger.debug(f"{action} in table {self.model.__tablename__.upper()} done")
         return db_obj, was_created
 
 
-class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaType, UpdateSchemaType]):
+class SoftDeletableRepository(BaseSQLRepository[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Asynchronous CRUD repository supporting soft deletion.
 
     Provides utilities for querying and soft-deleting data on BaseModel with is_deleted field.
     """
 
-    def __init__(self, model: type[ModelType]):
+    def __init__(self, session: AsyncSession, model: type[ModelType]):
         """Initializes the repository and validates soft-delete support.
 
         Args:
+            session (AsyncSession): SQLAlchemy async session.
             model (type[ModelType]): SQLAlchemy model class.
 
         Raises:
             TypeError: If the model doesn't support soft deletion.
         """
-        super().__init__(model)
+        super().__init__(session, model)
 
         # Validate that the model has soft_delete method
         if not hasattr(self.model, "soft_delete"):
@@ -530,7 +519,6 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
 
     async def delete(
         self,
-        session: AsyncSession,
         *,
         obj_id: Any,
     ) -> None:
@@ -543,19 +531,18 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
         Raises:
             ValueError: If the object with the given ID is not found.
         """
-        obj = await self.get(session, obj_id)
+        obj = await self.get(obj_id)
         if obj is None:
             raise ValueError(f"Object with id {obj_id} not found.")
 
         obj.soft_delete()
-        await session.flush([obj])
+        await self.session.flush([obj])
 
         logger.debug(f"Soft delete {obj_id} from table {self.model.__tablename__.upper()} done")
 
-    async def delete_multi(
+    async def delete_many(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> int:
         """Soft-deletes multiple records matching the filters using bulk update.
 
@@ -569,10 +556,10 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
             int: Number of soft-deleted records.
         """
         # Use bulk update to set is_deleted = True
-        stmt = self.query().add_filters(**filters).as_update({"is_deleted": True})
-        result = await session.execute(stmt)
+        stmt = self.query().add_filters(filters).as_update({"is_deleted": True})
+        result = await self.session.execute(stmt)
 
-        await session.flush()
+        await self.session.flush()
         deleted_count: int = result.rowcount or 0
 
         logger.debug(f"Bulk soft delete {deleted_count} records from table {self.model.__tablename__.upper()} done")
@@ -580,7 +567,6 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
 
     async def restore(
         self,
-        session: AsyncSession,
         *,
         obj_id: Any,
     ) -> ModelType:
@@ -598,23 +584,22 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
         """
         # Query including deleted records
         stmt = self.query().include_deleted().add_filters(self.model.id == obj_id).limit(1).as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         obj: ModelType | None = result.scalars().first()
 
         if obj is None:
             raise ValueError(f"Object with id {obj_id} not found.")
 
         obj.is_deleted = False
-        await session.flush([obj])
-        await session.refresh(obj)
+        await self.session.flush([obj])
+        await self.session.refresh(obj)
 
         logger.debug(f"Restore {obj_id} in table {self.model.__tablename__.upper()} done")
         return obj
 
-    async def restore_multi(
+    async def restore_many(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> int:
         """Restores multiple soft-deleted records matching the filters.
 
@@ -626,10 +611,10 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
             int: Number of restored records.
         """
         # Build query that includes deleted records
-        stmt = self.query().only_deleted().add_filters(**filters).as_update({"is_deleted": False})
-        result = await session.execute(stmt)
+        stmt = self.query().only_deleted().add_filters(filters).as_update({"is_deleted": False})
+        result = await self.session.execute(stmt)
 
-        await session.flush()
+        await self.session.flush()
         restored_count: int = result.rowcount or 0
 
         logger.debug(f"Bulk restore {restored_count} records in table {self.model.__tablename__.upper()} done")
@@ -637,7 +622,6 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
 
     async def hard_delete(
         self,
-        session: AsyncSession,
         *,
         obj_id: Any,
     ) -> None:
@@ -652,21 +636,20 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
         """
         # Query including deleted records
         stmt = self.query().include_deleted().add_filters(self.model.id == obj_id).limit(1).as_select()
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         obj: ModelType | None = result.scalars().first()
 
         if obj is None:
             raise ValueError(f"Object with id {obj_id} not found.")
 
-        await session.delete(obj)
-        await session.flush()
+        await self.session.delete(obj)
+        await self.session.flush()
 
         logger.debug(f"Hard delete {obj_id} from table {self.model.__tablename__.upper()} done")
 
-    async def hard_delete_multi(
+    async def hard_delete_many(
         self,
-        session: AsyncSession,
-        **filters: Any
+        filters: Sequence[ColumnElement[bool]]
     ) -> int:
         """Permanently deletes multiple records from the database (bypasses soft delete).
 
@@ -677,10 +660,10 @@ class SoftDeletableAsyncRepository(SQLAsyncRepository[ModelType, CreateSchemaTyp
         Returns:
             int: Number of permanently deleted records.
         """
-        stmt = self.query().include_deleted().add_filters(**filters).as_delete()
-        result = await session.execute(stmt)
+        stmt = self.query().include_deleted().add_filters(filters).as_delete()
+        result = await self.session.execute(stmt)
 
-        await session.flush()
+        await self.session.flush()
         deleted_count: int = result.rowcount or 0
 
         logger.debug(f"Hard delete {deleted_count} records from table {self.model.__tablename__.upper()} done")

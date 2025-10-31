@@ -17,7 +17,7 @@ from fastapi.security import HTTPBasic
 from passlib.context import CryptContext
 
 from fastwings.config import settings
-from fastwings.error_code import AuthErrorCode
+from fastwings.error.error_code import AuthErrorCode
 
 if TYPE_CHECKING:
     from fastapi.security import HTTPBasicCredentials

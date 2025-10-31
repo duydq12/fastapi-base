@@ -19,7 +19,7 @@ from jose import jwt
 from pydantic import ValidationError
 
 from fastwings.config import settings
-from fastwings.error_code import AuthErrorCode
+from fastwings.error.error_code import AuthErrorCode
 
 if TYPE_CHECKING:
     from typing import Any

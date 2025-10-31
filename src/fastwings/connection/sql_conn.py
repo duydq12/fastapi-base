@@ -1,43 +1,43 @@
-"""Implements synchronous database connection management for FastAPI applications.
+"""Implements asynchronous database connection management for FastAPI applications.
 
-Provides session manager and utilities for database health checks.
+Provides async session manager and utilities for database health checks.
 """
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
+from socket import gaierror
 from typing import TYPE_CHECKING
 
-from sqlalchemy import create_engine
+from asyncpg.exceptions._base import PostgresError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
-from tenacity import retry, stop_after_attempt, wait_fixed
 
 from fastwings.config import settings
-from fastwings.error_code import ServerErrorCode
+from fastwings.error.error_code import ServerErrorCode
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncIterator
     from typing import Any
 
-    from sqlalchemy import Connection, Engine
-    from sqlalchemy.orm import Session
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 
-
+# Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
 class SessionManager:
-    """Manages synchronous SQLAlchemy engine and session creation for FastAPI applications.
+    """Manages asynchronous SQLAlchemy engine and session creation for FastAPI applications.
 
-    Provides context managers for database connections and sessions.
+    Provides context managers for async database connections and sessions.
 
     Args:
         host (str): Database connection string.
         engine_kwargs (dict, optional): Additional engine configuration.
     """
 
-    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None) -> None:
-        """Initializes the SessionManager with engine and sessionmaker.
+    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None):
+        """Initializes the SessionManager with async engine and sessionmaker.
 
         Args:
             host (str): Database connection string.
@@ -45,52 +45,74 @@ class SessionManager:
         """
         if engine_kwargs is None:
             engine_kwargs = {}
-        self._engine: Engine | None = create_engine(host, **engine_kwargs)
-        self._sessionmaker: sessionmaker[Session] | None = sessionmaker(autocommit=False, autoflush=False,
-                                                                        bind=self._engine)
+        self._engine: AsyncEngine | None = create_async_engine(host, **engine_kwargs)
+        self._sessionmaker: async_sessionmaker[AsyncSession] | None = async_sessionmaker(
+            autocommit=False, autoflush=False, bind=self._engine, expire_on_commit=False
+        )
 
-    def close(self) -> None:
-        """Closes the engine and sessionmaker, releasing resources.
+    async def close(self) -> None:
+        """Closes the async engine and sessionmaker, releasing resources.
 
         Raises:
             Exception: If SessionManager is not initialized.
         """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
-        self._engine.dispose()
+        await self._engine.dispose()
         self._engine = None
         self._sessionmaker = None
 
-    @contextlib.contextmanager
-    def transaction(self) -> Iterator[Connection]:
-        """Context manager for database transactions.
+    @contextlib.asynccontextmanager
+    async def connect(self) -> AsyncIterator[AsyncConnection]:
+        """Async context manager for direct database connections.
 
-        Provides a database connection within a transaction context.
-        Automatically commits on success or rolls back on exception.
+        Provides a raw database connection for operations that don't require
+        a full session. Useful for DDL operations, raw SQL execution, or
+        when fine-grained connection control is needed.
 
         Yields:
-            Connection: SQLAlchemy database connection within a transaction.
+            AsyncConnection: SQLAlchemy async database connection.
 
         Raises:
-            Exception: If the SessionManager is not initialized or if a
+            Exception: If the AsyncSessionManager is not initialized.
+        """
+        if self._engine is None:
+            raise Exception("SessionManager is not initialized")
+
+        async with self._engine.connect() as connection:
+            yield connection
+
+    @contextlib.asynccontextmanager
+    async def transaction(self) -> AsyncIterator[AsyncConnection]:
+        """Async context manager for database transactions.
+
+        Provides a database connection within a transaction context that
+        automatically commits on success or rolls back on exception.
+        This is useful for operations that require transactional guarantees.
+
+        Yields:
+            AsyncConnection: SQLAlchemy async database connection within a transaction.
+
+        Raises:
+            Exception: If the AsyncSessionManager is not initialized or if a
                 database error occurs during the transaction.
         """
         if self._engine is None:
             raise Exception("SessionManager is not initialized")
 
-        with self._engine.begin() as transaction:
+        async with self._engine.begin() as transaction:
             try:
                 yield transaction
             except Exception:
-                transaction.rollback()
+                await transaction.rollback()
                 raise
 
-    @contextlib.contextmanager
-    def session(self) -> Iterator[Session]:
-        """Context manager for database session.
+    @contextlib.asynccontextmanager
+    async def session(self) -> AsyncIterator[AsyncSession]:
+        """Async context manager for database session.
 
         Yields:
-            Session: An active database session.
+            AsyncSession: An active async database session.
 
         Raises:
             Exception: If SessionManager is not initialized.
@@ -98,21 +120,21 @@ class SessionManager:
         if self._sessionmaker is None:
             raise Exception("SessionManager is not initialized")
 
-        session = self._sessionmaker()
-        try:
-            yield session
-            session.commit()
-        except Exception as ex:
-            session.rollback()
-            raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
-        finally:
-            session.close()
+        async with self._sessionmaker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception as ex:
+                await session.rollback()
+                raise ServerErrorCode.DATABASE_ERROR.value(ex) from ex
+            finally:
+                await session.close()
 
 
 if settings.DB_ENGINE == "postgre":
-    engine = "postgresql+psycopg2"
+    engine = "postgresql+asyncpg"
 elif settings.DB_ENGINE == "mysql":
-    engine = "mysql+pymysql"
+    engine = "mysql+asyncmy"
 else:
     raise ValueError(f"Not support for engine: {settings.DB_ENGINE}")
 
@@ -122,34 +144,30 @@ sessionmanager = SessionManager(
 )
 
 
-def get_db_session() -> Iterator[Session]:
-    """Provides a generator for yielding a database session using SessionManager.
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """Provides an async generator for yielding a database session using SessionManager.
 
     Yields:
-        Session: An active database session.
+        AsyncSession: An active async database session.
     """
-    with sessionmanager.session() as session:
+    async with sessionmanager.session() as session:
         yield session
 
 
-@retry(
-    stop=stop_after_attempt(30),
-    wait=wait_fixed(1),
-)
-def is_database_online() -> bool:
+async def is_database_online() -> bool:
     """Checks if the database is online by executing a simple query.
 
     Returns:
         bool: True if database is online, False otherwise.
     """
     try:
-        for session in get_db_session():
-            with session:
-                session.execute(select(1))
-    except (SQLAlchemyError, TimeoutError):
+        async for session in get_db_session():
+            async with session:
+                await asyncio.wait_for(session.execute(select(1)), timeout=30)
+    except (SQLAlchemyError, PostgresError, gaierror, TimeoutError):
         return False
     return True
 
 
 if __name__ == "__main__":
-    is_database_online()
+    asyncio.run(is_database_online())

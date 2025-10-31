@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
-    from types import FrameType
+    from fastwings.types import FrameType
     from typing import Any
 
 

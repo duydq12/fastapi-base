@@ -14,11 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlmodel import Field
 
-from fastwings.crud.sql_async_repo import (
+from fastwings.repository.base_sql import (
     SoftDeletableAsyncRepository,
     SQLAsyncRepository,
 )
-from fastwings.crud.sql_repo import (
+from fastwings.repository.sql_repo import (
     SoftDeletableRepository,
     SQLRepository,
 )

@@ -8,7 +8,7 @@ from fastapi.security import HTTPBasicCredentials
 
 from fastwings.authen import basic
 from fastwings.config import settings
-from fastwings.error_code import AuthErrorCode
+from fastwings.error.error_code import AuthErrorCode
 from fastwings.exception import BusinessException
 
 HASH_USERNAME = "$2b$12$ZSmiD7O4XwgqLK48pVB5tuofZxPPW0g8FbC28P7CUVuwMWkMpcGK2"  # noqa: S105
